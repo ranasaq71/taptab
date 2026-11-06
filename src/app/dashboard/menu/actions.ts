@@ -29,7 +29,11 @@ async function ownItem(ctx: Ctx, id: string) {
 const loc = (en: string, es?: string) => (es?.trim() ? { en: en.trim(), es: es.trim() } : { en: en.trim() });
 
 // ---------- Categories ----------
-const Cat = z.object({ id: z.string().uuid().optional(), en: z.string().trim().min(1, "Name the category").max(60), es: z.string().trim().max(60).optional() });
+const Cat = z.object({
+  id: z.string().uuid().optional(), en: z.string().trim().min(1, "Name the category").max(60), es: z.string().trim().max(60).optional(),
+  subEn: z.string().trim().max(80).optional(), subEs: z.string().trim().max(80).optional(),
+  display: z.enum(["list", "cards"]).default("list"),
+});
 
 export async function saveCategory(input: z.input<typeof Cat>): Promise<Result> {
   const ctx = await ctxFor();
@@ -37,12 +41,12 @@ export async function saveCategory(input: z.input<typeof Cat>): Promise<Result> 
   if (!p.success) return { error: p.error.issues[0].message };
   if (p.data.id) {
     if (!(await ownCategory(ctx, p.data.id))) return { error: "Category not found." };
-    const { error } = await ctx.db.from("menu_categories").update({ name: loc(p.data.en, p.data.es) }).eq("id", p.data.id);
+    const { error } = await ctx.db.from("menu_categories").update({ name: loc(p.data.en, p.data.es), subtitle: p.data.subEn ? loc(p.data.subEn, p.data.subEs) : {}, display: p.data.display }).eq("id", p.data.id);
     return error ? { error: "Couldn’t save." } : refresh();
   }
   const mid = await menuId(ctx);
   const { count } = await ctx.db.from("menu_categories").select("id", { count: "exact", head: true }).eq("menu_id", mid);
-  const { error } = await ctx.db.from("menu_categories").insert({ menu_id: mid, name: loc(p.data.en, p.data.es), sort_order: (count ?? 0) + 1 });
+  const { error } = await ctx.db.from("menu_categories").insert({ menu_id: mid, name: loc(p.data.en, p.data.es), subtitle: p.data.subEn ? loc(p.data.subEn, p.data.subEs) : {}, display: p.data.display, sort_order: (count ?? 0) + 1 });
   return error ? { error: "Couldn’t add the category." } : refresh();
 }
 
@@ -71,6 +75,7 @@ const Item = z.object({
   descEs: z.string().trim().max(300).optional(),
   price: z.string().trim().regex(/^(\d{1,4}(\.\d{1,2})?)?$/, "Price looks wrong. Use a number like 12.50").optional(),
   tags: z.array(z.enum(TAGS)).default([]),
+  heat: z.number().int().min(0).max(3).default(0),
   available: z.boolean().default(true),
 });
 
@@ -84,7 +89,8 @@ export async function saveItem(input: z.input<typeof Item>): Promise<Result> {
     category_id: v.categoryId, name: loc(v.nameEn, v.nameEs),
     description: v.descEn ? loc(v.descEn, v.descEs) : {},
     price_cents: v.price ? Math.round(parseFloat(v.price) * 100) : null,
-    tags: v.tags, available: v.available,
+    // Spice level drives the "Spicy" label, so the filter and flames always agree.
+    tags: [...v.tags.filter((t) => t !== "hot"), ...(v.heat > 0 ? ["hot" as const] : [])], heat: v.heat, available: v.available,
   };
   if (v.id) {
     if (!(await ownItem(ctx, v.id))) return { error: "Dish not found." };
@@ -291,7 +297,7 @@ export async function aiSaveDraft(draft: Draft, mode: "add" | "replace"): Promis
     const rows = c.items.map((i, k) => ({
       category_id: cat.id, name: { en: i.name }, description: i.description ? { en: i.description } : {},
       price_cents: i.price != null ? Math.round(i.price * 100) : null,
-      tags: (i.tags ?? []).filter((t): t is (typeof TAGS)[number] => (TAGS as readonly string[]).includes(t)), sort_order: k + 1,
+      tags: (i.tags ?? []).filter((t): t is (typeof TAGS)[number] => (TAGS as readonly string[]).includes(t)), heat: (i.tags ?? []).includes("hot") ? 1 : 0, sort_order: k + 1,
     }));
     const { error: e2 } = await ctx.db.from("menu_items").insert(rows);
     if (e2) return { error: "Saving stopped partway. Check your menu and try again." };
@@ -315,12 +321,14 @@ const TRANSLATE_TOOL = {
 export async function aiTranslate(overwrite: boolean): Promise<Result> {
   const ctx = await ctxFor();
   const mid = await menuId(ctx);
-  const { data: cats } = await ctx.db.from("menu_categories").select("id, name, menu_items(id, name, description)").eq("menu_id", mid);
+  const { data: cats } = await ctx.db.from("menu_categories").select("id, name, subtitle, menu_items(id, name, description)").eq("menu_id", mid);
   type Job = { id: string; en: string; apply: (es: string) => PromiseLike<unknown> };
   const jobs: Job[] = [];
   for (const c of cats ?? []) {
     const name = c.name as { en?: string; es?: string };
     if (name.en && (overwrite || !name.es)) jobs.push({ id: `c:${c.id}`, en: name.en, apply: (es) => ctx.db.from("menu_categories").update({ name: { ...name, es } }).eq("id", c.id) });
+    const sub = (c.subtitle ?? {}) as { en?: string; es?: string };
+    if (sub.en && (overwrite || !sub.es)) jobs.push({ id: `s:${c.id}`, en: sub.en, apply: (es) => ctx.db.from("menu_categories").update({ subtitle: { ...sub, es } }).eq("id", c.id) });
     for (const i of (c.menu_items as any[]) ?? []) {
       const n = i.name as { en?: string; es?: string };
       const d = (i.description ?? {}) as { en?: string; es?: string };
@@ -345,7 +353,7 @@ export async function aiTranslate(overwrite: boolean): Promise<Result> {
     for (const j of jobs) {
       const t = es.get(j.id);
       if (!t) continue;
-      if (j.id.startsWith("c:")) { await j.apply(t); done++; continue; }
+      if (j.id.startsWith("c:") || j.id.startsWith("s:")) { await j.apply(t); done++; continue; }
       const key = j.id.slice(2);
       const slot = byItem.get(key) ?? {};
       if (j.id.startsWith("n:")) slot.n = t; else slot.d = t;

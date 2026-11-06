@@ -3,14 +3,14 @@ import { useEffect, useMemo, useState } from "react";
 import type { HubButton, HubData, Lang, Localized } from "@/lib/hub";
 
 const T = {
-  en: { table: "Table", special: "Today’s Special", close: "Close", all: "All", network: "Network", password: "Password", copy: "Copy password", copied: "Password copied",
+  en: { table: "Table", special: "Today’s Special", close: "Close", all: "All Dishes", menuTitle: "Menu", network: "Network", password: "Password", copy: "Copy password", copied: "Password copied",
         how: "How was everything today?", google: "Post your review on Google", notePrompt: "Anything the manager should know? Only they will see this.",
         notePh: "Type a note", sendNote: "Send to the manager", noteSent: "Sent to the manager. Thank you.",
         serverIntro: "Your server gets an alert right away.", help: "I need help", check: "Bring the check", refill: "Refill our drinks", notified: "Your server has been notified",
         loyaltyIntro: (g: number, r: string) => `Collect ${g} stamps: ${r}.`, phone: "Mobile number", consent: "Save my rewards card to this number. No spam.",
         stamp: "Collect today’s stamp", stamped: "Today’s stamp collected", already: "You already collected a stamp today", reward: "Reward unlocked:",
         pdf: "View full menu (PDF)", error: "Something went wrong. Please ask your server.", powered: "Powered by" },
-  es: { table: "Mesa", special: "Especial de hoy", close: "Cerrar", all: "Todo", network: "Red", password: "Contraseña", copy: "Copiar contraseña", copied: "Contraseña copiada",
+  es: { table: "Mesa", special: "Especial de hoy", close: "Cerrar", all: "Todos", menuTitle: "Menú", network: "Red", password: "Contraseña", copy: "Copiar contraseña", copied: "Contraseña copiada",
         how: "¿Cómo estuvo todo hoy?", google: "Publicar en Google", notePrompt: "¿Algo que el gerente deba saber? Solo lo verá el gerente.",
         notePh: "Escribe aquí", sendNote: "Enviar al gerente", noteSent: "Enviado. Gracias.",
         serverIntro: "Tu mesero recibirá una alerta.", help: "Necesito ayuda", check: "Traer la cuenta", refill: "Rellenar bebidas", notified: "Tu mesero ya va en camino",
@@ -115,12 +115,15 @@ export default function Hub({ data }: { data: HubData }) {
 
       {sheet && (
         <div className="sheet" onClick={(e) => e.target === e.currentTarget && setSheet(null)}>
-          <div className="sheet-panel" role="dialog" aria-modal="true" aria-labelledby="sheet-title">
-            <div className="sheet-top">
-              <h2 id="sheet-title">{LABELS[sheet][lang][0]}</h2>
-              <button className="x" onClick={() => setSheet(null)} aria-label={t.close}>✕</button>
-            </div>
-            {sheet === "menu" && <MenuSheet data={data} lang={lang} L={L} t={t} />}
+          <div className={`sheet-panel${sheet === "menu" ? " menu-panel" : ""}`} role="dialog" aria-modal="true" aria-labelledby="sheet-title">
+            {sheet === "menu" ? (
+              <MenuSheet data={data} L={L} t={t} onClose={() => setSheet(null)} />
+            ) : (
+              <div className="sheet-top">
+                <h2 id="sheet-title">{LABELS[sheet][lang][0]}</h2>
+                <button className="x" onClick={() => setSheet(null)} aria-label={t.close}>✕</button>
+              </div>
+            )}
             {sheet === "wifi" && (
               <>
                 <div className="wifi-box"><div><span>{t.network}</span><b>{data.settings.wifiName}</b></div><div><span>{t.password}</span><b>{data.settings.wifiPassword}</b></div></div>
@@ -185,38 +188,105 @@ function Swoosh() {
   );
 }
 
-function MenuSheet({ data, lang, L, t }: { data: HubData; lang: Lang; L: (o?: Localized) => string; t: typeof T.en }) {
+function MenuSheet({ data, L, t, onClose }: { data: HubData; L: (o?: Localized) => string; t: typeof T.en; onClose: () => void }) {
   const [filter, setFilter] = useState("all");
-  const filters = ["all", "veg", "gf", "hot"].filter((f) => f === "all" || data.menu.categories.some((c) => c.items.some((i) => i.tags.includes(f))));
+  const isSpicy = (i: { heat: number; tags: string[] }) => i.heat > 0 || i.tags.includes("hot");
+  const match = (i: HubData["menu"]["categories"][number]["items"][number]) =>
+    filter === "all" || (filter === "hot" ? isSpicy(i) : i.tags.includes(filter));
+  const all = data.menu.categories.flatMap((c) => c.items);
+  const filters = ["all", "hot", "veg", "gf"].filter((f) => f === "all" || all.some((i) => (f === "hot" ? isSpicy(i) : i.tags.includes(f))));
+  const chipIcon: Record<string, string> = { all: "cutlery", hot: "flame", veg: "leaf", gf: "wheat" };
+  const money = (c: number) => `$${(c / 100).toFixed(c % 100 ? 2 : 0)}`;
+
   return (
     <>
+      <header className="mh">
+        <h2 id="sheet-title" className="mh-title">{t.menuTitle}</h2>
+        <button className="x" onClick={onClose} aria-label={t.close}>✕</button>
+      </header>
       {filters.length > 1 && (
-        <div className="chips" role="group">
-          {filters.map((f) => <button key={f} className="chip" aria-pressed={filter === f} onClick={() => setFilter(f)}>{f === "all" ? t.all : L(TAGS[f])}</button>)}
+        <div className="mchips" role="group">
+          {filters.map((f) => (
+            <button key={f} className="mchip" aria-pressed={filter === f} onClick={() => setFilter(f)}>
+              <MIcon name={chipIcon[f]} />{f === "all" ? t.all : L(TAGS[f])}
+            </button>
+          ))}
         </div>
       )}
       {data.menu.categories.map((c) => {
-        const items = c.items.filter((i) => filter === "all" || i.tags.includes(filter));
+        const items = c.items.filter(match);
         if (!items.length) return null;
         return (
-          <section key={c.id}>
-            <div className="cat">{L(c.name)}</div>
-            {items.map((i) => (
-              <div className="item" key={i.id}>
-                <div>
-                  <b>{L(i.name)}</b>
-                  {L(i.description) && <small>{L(i.description)}</small>}
-                  {i.tags.length > 0 && <div className="tags">{i.tags.filter((x) => TAGS[x]).map((x) => <span key={x} className={`tag${x === "hot" ? " hot" : ""}`}>{L(TAGS[x])}</span>)}</div>}
-                </div>
-                {i.priceCents != null && <span className="price">${(i.priceCents / 100).toFixed(i.priceCents % 100 ? 2 : 0)}</span>}
+          <section key={c.id} className="mcat">
+            <header className="mcat-band">
+              <span className="mcat-leaf"><MIcon name="leafmark" /></span>
+              <h3>{L(c.name)}</h3>
+              <span className="mcat-rule" />
+              {L(c.subtitle) && <em>{L(c.subtitle)}</em>}
+            </header>
+            {c.display === "cards" ? (
+              <div className="mcards">
+                {items.map((i) => (
+                  <div className="mcard" key={i.id}>
+                    {i.photoUrl ? <img src={i.photoUrl} alt="" loading="lazy" /> : <span className="mcard-ph"><MIcon name="leafmark" /></span>}
+                    <b>{L(i.name)}</b>
+                    {L(i.description) && <small>{L(i.description)}</small>}
+                    <Heat n={i.heat} scale />
+                    {i.priceCents != null && <span className="mprice sm">{money(i.priceCents)}</span>}
+                  </div>
+                ))}
               </div>
-            ))}
+            ) : (
+              <div className="mlist">
+                {items.map((i) => (
+                  <div className={`mrow${i.photoUrl ? "" : " nophoto"}`} key={i.id}>
+                    {i.photoUrl && <img src={i.photoUrl} alt="" loading="lazy" className="mrow-photo" />}
+                    <div className="mrow-main">
+                      <b>{L(i.name)} <Heat n={i.heat} /></b>
+                      {L(i.description) && <small>{L(i.description)}</small>}
+                      {i.tags.some((x) => x === "veg" || x === "vegan" || x === "gf") && (
+                        <div className="tags">{i.tags.filter((x) => x !== "hot" && TAGS[x]).map((x) => <span key={x} className="tag">{L(TAGS[x])}</span>)}</div>
+                      )}
+                    </div>
+                    {i.priceCents != null && <span className="mprice">{money(i.priceCents)}</span>}
+                  </div>
+                ))}
+              </div>
+            )}
           </section>
         );
       })}
       {data.menu.pdfUrl && <a className="big-btn ghost" href={data.menu.pdfUrl} target="_blank" rel="noopener">{t.pdf}</a>}
     </>
   );
+}
+
+/** Flames: in a dish row, one flame per heat level; on a card, a 3-flame scale. */
+function Heat({ n, scale }: { n: number; scale?: boolean }) {
+  if (!scale && n <= 0) return null;
+  const count = scale ? 3 : n;
+  return (
+    <span className={`heat${scale ? " scale" : ""}`} aria-label={n > 0 ? `Spice level ${n} of 3` : "Not spicy"}>
+      {Array.from({ length: count }, (_, k) => <MIcon key={k} name="flame" className={k < n ? "on" : "off"} />)}
+    </span>
+  );
+}
+
+function MIcon({ name, className }: { name: string; className?: string }) {
+  if (name === "flame") return (
+    <svg viewBox="0 0 24 24" width="1em" height="1em" aria-hidden className={`flame ${className ?? ""}`}>
+      <path fill="currentColor" d="M12.6 2.3c.4 2.6-.6 4.3-2 5.9-1.5 1.7-3.4 3.4-3.4 6.6A4.8 4.8 0 0 0 12 19.7a4.8 4.8 0 0 0 4.8-4.9c0-1.6-.6-2.9-1.3-4 .1 1.2-.3 2.3-1.2 2.9.3-2.6-.2-5.4-1.7-7.6-.5-.8-.6-2.3 0-3.8Z" />
+      <path fill="#FFD27A" opacity=".85" d="M12.2 12.4c.2 1.4-.4 2.2-1 3-.5.6-.9 1.2-.9 2a1.8 1.8 0 0 0 3.6.1c0-.9-.4-1.5-.9-2.1.1.4 0 .8-.3 1 .1-1.3-.1-2.7-.5-4Z" />
+    </svg>
+  );
+  const p = { fill: "none", stroke: "currentColor", strokeWidth: 1.8, strokeLinecap: "round" as const, strokeLinejoin: "round" as const };
+  const d: Record<string, React.ReactNode> = {
+    cutlery: <><path d="M7 3v8M5 3v5a2 2 0 0 0 4 0V3M7 11v10" /><path d="M17 3c-2 1.5-2.5 5-1.5 8H17v10" /></>,
+    leaf: <><path d="M5 19c0-8 5-13 14-14-1 9-6 14-14 14Z" /><path d="M5 19 13 11" /></>,
+    wheat: <><path d="M12 21V8" /><path d="M12 12c-2.5 0-4-1.5-4-4 2.5 0 4 1.5 4 4Zm0 0c2.5 0 4-1.5 4-4-2.5 0-4 1.5-4 4Zm0-4c-2 0-3-1.3-3-3.5 2 0 3 1.3 3 3.5Zm0 0c2 0 3-1.3 3-3.5-2 0-3 1.3-3 3.5Z" /></>,
+    leafmark: <><path d="M3 15c4-9 11-11 18-10-2 7-7 12-15 12" /><path d="M7 15c3-3 6-5 10-6" /><path d="M5 19c3-1 5-2 7-4" /></>,
+  };
+  return <svg viewBox="0 0 24 24" width="1em" height="1em" aria-hidden {...p}>{d[name]}</svg>;
 }
 
 function ReviewSheet({ data, t, send, track, done, onError }: { data: HubData; t: typeof T.en; send: (b: Record<string, unknown>) => Promise<any>; track: (x: string) => void; done: (m: string) => void; onError: (m: string) => void }) {

@@ -4,9 +4,12 @@ import * as A from "./actions";
 import { shrinkImage } from "./shrink";
 
 type L = { en?: string; es?: string };
-export type MItem = { id: string; name: L; description: L; priceCents: number | null; tags: string[]; photoUrl: string | null; available: boolean };
-export type MCat = { id: string; name: L; items: MItem[] };
+export type MItem = { id: string; name: L; description: L; priceCents: number | null; tags: string[]; photoUrl: string | null; available: boolean; heat: number };
+export type MCat = { id: string; name: L; subtitle: L; display: "list" | "cards"; items: MItem[] };
 const TAG_LABEL: Record<string, string> = { veg: "Vegetarian", vegan: "Vegan", gf: "Gluten‑free", hot: "Spicy" };
+const DIET = ["veg", "vegan", "gf"] as const;
+const HEAT = ["Not spicy", "Mild", "Medium", "Hot"];
+const flames = (n: number) => (n > 0 ? " " + "🔥".repeat(n) : "");
 
 function useAct() {
   const [pending, start] = useTransition();
@@ -123,14 +126,23 @@ function Category({ c, first, last }: { c: MCat; first: boolean; last: boolean }
     <section className="card">
       <div className="cat-head">
         {editing ? (
-          <form className="row-gap" onSubmit={(e) => { e.preventDefault(); const f = new FormData(e.currentTarget); run(async () => { const r = await A.saveCategory({ id: c.id, en: String(f.get("en")), es: String(f.get("es")) }); if (r.ok) setEditing(false); return r; }); }}>
+          <form className="cat-form" onSubmit={(e) => { e.preventDefault(); const f = new FormData(e.currentTarget); const s = (k: string) => String(f.get(k) ?? ""); run(async () => { const r = await A.saveCategory({ id: c.id, en: s("en"), es: s("es"), subEn: s("subEn"), subEs: s("subEs"), display: s("display") as "list" | "cards" }); if (r.ok) setEditing(false); return r; }); }}>
             <input name="en" defaultValue={c.name.en} placeholder="Section (English)" required />
             <input name="es" defaultValue={c.name.es} placeholder="Sección (español)" />
+            <input name="subEn" defaultValue={c.subtitle.en} placeholder="Subtitle, e.g. Choose your favorite flavor (optional)" />
+            <input name="subEs" defaultValue={c.subtitle.es} placeholder="Subtítulo (optional)" />
+            <select name="display" defaultValue={c.display} aria-label="How this section looks">
+              <option value="list">Show as a list (dishes with photo and price)</option>
+              <option value="cards">Show as cards (flavors, sauces, sides)</option>
+            </select>
             <button className="btn-sm" disabled={pending}>Save</button>
             <button type="button" className="link-btn" onClick={() => setEditing(false)}>Cancel</button>
           </form>
         ) : (
-          <h2>{c.name.en}{c.name.es && <span className="muted es"> · {c.name.es}</span>}</h2>
+          <div>
+            <h2>{c.name.en}{c.name.es && <span className="muted es"> · {c.name.es}</span>}</h2>
+            <p className="muted small cat-meta">{c.display === "cards" ? "Shown as cards" : "Shown as a list"}{c.subtitle.en ? ` · “${c.subtitle.en}”` : ""}</p>
+          </div>
         )}
         <div className="row-gap">
           <button className="icon-btn" disabled={first || pending} onClick={() => run(() => A.moveCategory(c.id, -1))} aria-label="Move section up">↑</button>
@@ -157,9 +169,9 @@ function Dish({ item, categoryId, first, last }: { item: MItem; categoryId: stri
     <div className={`dish${item.available ? "" : " off"}`}>
       {item.photoUrl ? <img src={item.photoUrl} alt="" className="dish-photo" /> : <div className="dish-photo empty" />}
       <div className="dish-main">
-        <b>{item.name.en}</b>{item.name.es && <span className="muted es"> · {item.name.es}</span>}
+        <b>{item.name.en}{flames(item.heat)}</b>{item.name.es && <span className="muted es"> · {item.name.es}</span>}
         {item.description.en && <small>{item.description.en}</small>}
-        <div className="tags">{item.tags.map((t) => <span key={t} className="tag">{TAG_LABEL[t]}</span>)}{!item.available && <span className="tag off-tag">Sold out / hidden</span>}</div>
+        <div className="tags">{item.tags.filter((t) => t !== "hot").map((t) => <span key={t} className="tag">{TAG_LABEL[t]}</span>)}{!item.available && <span className="tag off-tag">Sold out / hidden</span>}</div>
         <Msg m={msg} />
       </div>
       <div className="dish-price">{item.priceCents != null ? `$${(item.priceCents / 100).toFixed(2)}` : ""}</div>
@@ -176,13 +188,14 @@ function Dish({ item, categoryId, first, last }: { item: MItem; categoryId: stri
 function DishForm({ item, categoryId, onDone }: { item?: MItem; categoryId: string; onDone: () => void }) {
   const { pending, msg, run } = useAct();
   const photo = useAct();
-  const [tags, setTags] = useState<string[]>(item?.tags ?? []);
+  const [tags, setTags] = useState<string[]>((item?.tags ?? []).filter((t) => t !== "hot"));
+  const [heat, setHeat] = useState<number>(item?.heat ?? 0);
   function submit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const f = new FormData(e.currentTarget);
     const s = (k: string) => String(f.get(k) ?? "");
     run(async () => {
-      const r = await A.saveItem({ id: item?.id, categoryId, nameEn: s("nameEn"), nameEs: s("nameEs"), descEn: s("descEn"), descEs: s("descEs"), price: s("price").replace("$", ""), tags: tags as any, available: f.get("available") === "on" });
+      const r = await A.saveItem({ id: item?.id, categoryId, nameEn: s("nameEn"), nameEs: s("nameEs"), descEn: s("descEn"), descEs: s("descEs"), price: s("price").replace("$", ""), tags: tags as any, heat, available: f.get("available") === "on" });
       if (r.ok) onDone();
       return r;
     });
@@ -203,8 +216,13 @@ function DishForm({ item, categoryId, onDone }: { item?: MItem; categoryId: stri
         <label className="field"><span>Description</span><input name="descEn" defaultValue={item?.description.en} /></label>
         <label className="field"><span>Description in Spanish (optional)</span><input name="descEs" defaultValue={item?.description.es} /></label>
         <label className="field"><span>Price ($)</span><input name="price" inputMode="decimal" defaultValue={item?.priceCents != null ? (item.priceCents / 100).toFixed(2) : ""} placeholder="12.50" /></label>
+        <div className="field"><span>Spice level</span>
+          <div className="chips">{HEAT.map((label, n) => (
+            <button type="button" key={n} className="chip" aria-pressed={heat === n} onClick={() => setHeat(n)}>{label}{flames(n)}</button>
+          ))}</div>
+        </div>
         <div className="field"><span>Diet labels</span>
-          <div className="chips">{Object.entries(TAG_LABEL).map(([k, label]) => (
+          <div className="chips">{DIET.map((k) => [k, TAG_LABEL[k]] as const).map(([k, label]) => (
             <button type="button" key={k} className="chip" aria-pressed={tags.includes(k)} onClick={() => setTags((t) => t.includes(k) ? t.filter((x) => x !== k) : [...t, k])}>{label}</button>
           ))}</div>
         </div>
@@ -235,9 +253,13 @@ function AddCategory() {
   return (
     <section className="card">
       <h2>Add a section</h2>
-      <form className="row-gap" onSubmit={(e) => { e.preventDefault(); const form = e.currentTarget; const f = new FormData(form); run(async () => { const r = await A.saveCategory({ en: String(f.get("en")), es: String(f.get("es")) }); if (r.ok) form.reset(); return r; }); }}>
-        <input name="en" placeholder="e.g. Desserts" required />
+      <form className="row-gap" onSubmit={(e) => { e.preventDefault(); const form = e.currentTarget; const f = new FormData(form); run(async () => { const r = await A.saveCategory({ en: String(f.get("en")), es: String(f.get("es")), display: String(f.get("display")) as "list" | "cards" }); if (r.ok) form.reset(); return r; }); }}>
+        <input name="en" placeholder="e.g. Desserts or Wing Flavors" required />
         <input name="es" placeholder="Postres (optional)" />
+        <select name="display" defaultValue="list" aria-label="How this section looks">
+          <option value="list">As a list</option>
+          <option value="cards">As cards</option>
+        </select>
         <button className="btn" disabled={pending}>Add section</button>
       </form>
       <Msg m={msg} />

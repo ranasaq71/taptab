@@ -312,3 +312,68 @@ textarea { min-height: 88px; resize: vertical; }
 .mini-tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
 .mini-tiles i { height: 22px; border-radius: 6px; background: #fff; box-shadow: 0 2px 6px -3px rgba(90,25,45,.4); }
 .mini-dark .mini-tiles i { background: color-mix(in srgb, var(--brand) 25%, #140a0e); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--brand) 60%, transparent); }
+
+/* ---------- Guest menu (reference design) ---------- */
+.hub { --serif: "DM Serif Display", Georgia, "Times New Roman", serif; }
+.sheet-panel.menu-panel { max-height: 94dvh; padding: 0 0 calc(env(safe-area-inset-bottom, 0px) + 24px); background: var(--hbg); }
+.hub[data-hub-theme="dark"] .menu-panel { background: radial-gradient(120% 30% at 100% 0%, color-mix(in srgb, var(--brand) 40%, transparent), transparent 70%), var(--hbg); }
+.mh { position: sticky; top: 0; z-index: 2; display: flex; justify-content: space-between; align-items: flex-start; padding: 20px 18px 6px;
+  background: linear-gradient(var(--hbg) 80%, transparent); }
+.hub[data-hub-theme="dark"] .mh { background: linear-gradient(#170b10 80%, transparent); }
+.mh-title { margin: 0; font-family: var(--serif); font-weight: 400; font-size: 46px; line-height: 1; letter-spacing: -.01em; position: relative; padding-bottom: 12px; }
+.mh-title::after { content: ""; position: absolute; left: 0; bottom: 0; width: 64%; height: 4px; border-radius: 4px; background: linear-gradient(90deg, var(--gold), var(--gold-2) 60%, transparent); }
+.menu-panel .x { width: 44px; height: 44px; font-size: 18px; background: var(--card); box-shadow: var(--shadow); border: 1px solid var(--line); }
+
+.mchips { display: flex; gap: 10px; flex-wrap: wrap; padding: 10px 18px 6px; }
+.mchip { display: inline-flex; align-items: center; gap: 8px; border: 1px solid var(--line); background: var(--card); border-radius: 999px; padding: 10px 18px; font-weight: 700; font-size: 15px; box-shadow: var(--shadow); }
+.mchip svg { font-size: 18px; }
+.mchip .flame { color: #E8461F; }
+.mchip[aria-pressed="true"] { background: var(--hero); border-color: transparent; color: #fff !important; }
+.mchip[aria-pressed="true"] .flame { color: #FFB14A; }
+
+.mcat { margin: 18px 14px 0; border-radius: 18px; overflow: hidden; background: var(--card); border: 1px solid var(--line); box-shadow: var(--shadow); }
+.mcat-band { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; padding: 14px 16px; color: #fff; position: relative;
+  background:
+    radial-gradient(circle at 100% 100%, transparent 9px, rgba(255,255,255,.07) 10px, transparent 11px) 0 0 / 22px 22px,
+    radial-gradient(circle at 0% 100%, transparent 9px, rgba(255,255,255,.07) 10px, transparent 11px) 11px 0 / 22px 22px,
+    var(--hero); }
+.mcat-band::before { content: ""; position: absolute; inset: 0; background: linear-gradient(90deg, color-mix(in srgb, var(--brand) 92%, #000) 30%, transparent 75%); }
+.mcat-band > * { position: relative; }
+.mcat-leaf { font-size: 30px; color: var(--gold); line-height: 0; }
+.mcat-band h3 { margin: 0; font-family: var(--serif); font-weight: 400; font-size: 29px; line-height: 1.05; white-space: nowrap; }
+.mcat-rule { flex: 1 1 30px; max-width: 90px; height: 2px; border-radius: 2px; background: linear-gradient(90deg, var(--gold), transparent); }
+.mcat-band em { flex-basis: 100%; padding-left: 42px; font-size: 13.5px; opacity: .92; }
+@media (min-width: 560px) { .mcat-band em { flex-basis: auto; margin-left: auto; padding-left: 0; text-align: right; } }
+
+.mlist { padding: 4px 14px; }
+.mrow { display: grid; grid-template-columns: 84px minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--line); }
+.mrow:last-child { border-bottom: 0; }
+.mrow.nophoto { grid-template-columns: minmax(0, 1fr) auto; }
+.mrow-photo { width: 84px; height: 66px; border-radius: 14px; object-fit: cover; box-shadow: 0 6px 14px -8px rgba(0,0,0,.6); }
+.mrow-main { display: grid; gap: 3px; min-width: 0; }
+.mrow-main b { font-size: 17px; letter-spacing: -.015em; line-height: 1.2; }
+.mrow-main small { font-size: 14px; color: var(--sub); line-height: 1.35; }
+.mprice { font-weight: 800; font-size: 16px; padding: 7px 12px; border-radius: 999px; white-space: nowrap;
+  background: color-mix(in srgb, var(--brand) 10%, #fff); color: var(--brand); }
+.hub[data-hub-theme="dark"] .mprice { background: color-mix(in srgb, var(--brand) 40%, #140a0e); color: var(--gold-2); }
+.mprice.sm { font-size: 13px; padding: 4px 9px; }
+.heat { display: inline-flex; gap: 1px; vertical-align: -2px; font-size: 17px; }
+.flame.on { color: #E8461F; }
+.flame.off { color: var(--sub); opacity: .35; }
+.flame.off path:last-child { display: none; }
+
+.mcards { display: grid; grid-template-columns: repeat(auto-fill, minmax(74px, 1fr)); gap: 8px; padding: 12px; }
+.mcard { display: grid; justify-items: center; align-content: start; gap: 4px; text-align: center; padding: 7px 6px 10px; border-radius: 16px;
+  background: var(--hbg); border: 1px solid var(--line); box-shadow: var(--shadow); }
+.hub[data-hub-theme="dark"] .mcard { background: color-mix(in srgb, var(--brand) 14%, #0f080b); }
+.mcard img, .mcard-ph { width: 100%; aspect-ratio: 1.15; object-fit: cover; border-radius: 12px; }
+.mcard-ph { display: grid; place-items: center; font-size: 34px; color: var(--gold); background: color-mix(in srgb, var(--brand) 12%, transparent); }
+.mcard b { font-size: 13.5px; line-height: 1.15; margin-top: 3px; }
+.mcard small { font-size: 12px; color: var(--sub); line-height: 1.3; }
+.mcard .heat { font-size: 14px; margin-top: 1px; }
+.menu-panel > .big-btn { width: auto; margin: 18px 14px 0; }
+@media (max-width: 380px) { .mrow { grid-template-columns: 72px minmax(0, 1fr) auto; gap: 10px; } .mrow-photo { width: 72px; height: 58px; } .mh-title { font-size: 40px; } .mcat-band h3 { font-size: 25px; } }
+.cat-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 8px; flex: 1; }
+.cat-form input, .cat-form select, .row-gap select { border: 1px solid var(--line); border-radius: 10px; padding: 9px 11px; background: var(--surface); }
+.cat-form .btn-sm, .cat-form .link-btn { justify-self: start; }
+.cat-meta { margin: 2px 0 0; }
