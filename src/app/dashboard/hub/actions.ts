@@ -21,6 +21,7 @@ const Hub = z.object({
   tiktok_url: url,
   loyalty_goal: z.coerce.number().int().min(3).max(20),
   loyalty_reward: z.string().trim().min(2).max(80),
+  theme: z.enum(["light", "dark"]).default("light"),
 });
 
 /** Saves the hub. Uses the signed-in user's database access, so the security rules decide who may edit. */
@@ -37,7 +38,7 @@ export async function saveHub(_: FormState, f: FormData): Promise<FormState> {
   const { error: e2 } = await ctx.db.from("hub_settings").update({
     special: nul(v.special), special_es: nul(v.special_es), wifi_name: nul(v.wifi_name), wifi_password: nul(v.wifi_password),
     google_review_url: nul(v.google_review_url), instagram_url: nul(v.instagram_url), tiktok_url: nul(v.tiktok_url),
-    buttons, loyalty_goal: v.loyalty_goal, loyalty_reward: v.loyalty_reward, updated_at: new Date().toISOString(),
+    buttons, theme: v.theme, loyalty_goal: v.loyalty_goal, loyalty_reward: v.loyalty_reward, updated_at: new Date().toISOString(),
   }).eq("location_id", ctx.location.id);
   if (e1 || e2) return { error: "Couldn’t save. Please try again." };
   revalidatePath("/dashboard/hub");

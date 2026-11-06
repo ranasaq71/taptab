@@ -15,7 +15,7 @@ export interface HubData {
     special: Localized; wifiName: string | null; wifiPassword: string | null;
     googleReviewUrl: string | null; instagramUrl: string | null; tiktokUrl: string | null;
     languages: Lang[]; buttons: Record<HubButton, boolean>;
-    loyaltyGoal: number; loyaltyReward: string;
+    loyaltyGoal: number; loyaltyReward: string; theme: "light" | "dark";
   };
   menu: { pdfUrl: string | null; categories: HubCategory[] };
 }
@@ -64,7 +64,7 @@ export async function loadHubByTag(rawCode: string): Promise<HubData | null> {
       wifiName: hub.wifi_name, wifiPassword: hub.wifi_password,
       googleReviewUrl: hub.google_review_url, instagramUrl: hub.instagram_url, tiktokUrl: hub.tiktok_url ?? null,
       languages: (hub.languages ?? ["en"]) as Lang[],
-      buttons: hub.buttons, loyaltyGoal: hub.loyalty_goal, loyaltyReward: hub.loyalty_reward,
+      buttons: hub.buttons, loyaltyGoal: hub.loyalty_goal, loyaltyReward: hub.loyalty_reward, theme: hub.theme === "dark" ? "dark" : "light",
     },
     menu: { pdfUrl: menu?.pdf_url ?? null, categories },
   };

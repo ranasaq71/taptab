@@ -3,20 +3,20 @@ import { useEffect, useMemo, useState } from "react";
 import type { HubButton, HubData, Lang, Localized } from "@/lib/hub";
 
 const T = {
-  en: { table: "Table", special: "Today’s special", close: "Close", all: "All", network: "Network", password: "Password", copy: "Copy password", copied: "Password copied",
+  en: { table: "Table", special: "Today’s Special", close: "Close", all: "All", network: "Network", password: "Password", copy: "Copy password", copied: "Password copied",
         how: "How was everything today?", google: "Post your review on Google", notePrompt: "Anything the manager should know? Only they will see this.",
         notePh: "Type a note", sendNote: "Send to the manager", noteSent: "Sent to the manager. Thank you.",
         serverIntro: "Your server gets an alert right away.", help: "I need help", check: "Bring the check", refill: "Refill our drinks", notified: "Your server has been notified",
         loyaltyIntro: (g: number, r: string) => `Collect ${g} stamps: ${r}.`, phone: "Mobile number", consent: "Save my rewards card to this number. No spam.",
         stamp: "Collect today’s stamp", stamped: "Today’s stamp collected", already: "You already collected a stamp today", reward: "Reward unlocked:",
-        pdf: "View full menu (PDF)", error: "Something went wrong. Please ask your server.", powered: "Powered by TapTab" },
+        pdf: "View full menu (PDF)", error: "Something went wrong. Please ask your server.", powered: "Powered by" },
   es: { table: "Mesa", special: "Especial de hoy", close: "Cerrar", all: "Todo", network: "Red", password: "Contraseña", copy: "Copiar contraseña", copied: "Contraseña copiada",
         how: "¿Cómo estuvo todo hoy?", google: "Publicar en Google", notePrompt: "¿Algo que el gerente deba saber? Solo lo verá el gerente.",
         notePh: "Escribe aquí", sendNote: "Enviar al gerente", noteSent: "Enviado. Gracias.",
         serverIntro: "Tu mesero recibirá una alerta.", help: "Necesito ayuda", check: "Traer la cuenta", refill: "Rellenar bebidas", notified: "Tu mesero ya va en camino",
         loyaltyIntro: (g: number, r: string) => `Junta ${g} sellos: ${r}.`, phone: "Número de celular", consent: "Guardar mi tarjeta con este número. Sin spam.",
         stamp: "Recibir el sello de hoy", stamped: "Sello de hoy recibido", already: "Ya recibiste el sello de hoy", reward: "Premio desbloqueado:",
-        pdf: "Ver menú completo (PDF)", error: "Algo salió mal. Pide ayuda a tu mesero.", powered: "Con tecnología de TapTab" },
+        pdf: "Ver menú completo (PDF)", error: "Algo salió mal. Pide ayuda a tu mesero.", powered: "Con tecnología de" },
 };
 const LABELS: Record<HubButton, { ico: string; en: [string, string]; es: [string, string] }> = {
   menu:      { ico: "📖", en: ["Menu", "Browse dishes"], es: ["Menú", "Ver platillos"] },
@@ -65,26 +65,53 @@ export default function Hub({ data }: { data: HubData }) {
     setSheet(k);
   }
 
+  const special = L(data.settings.special);
   return (
-    <div className="hub" style={{ ["--brand" as string]: data.location.brandColor }}>
-      {data.settings.languages.includes("es") && (
-        <div className="lang" role="group" aria-label="Language">
-          {(["en", "es"] as Lang[]).map((l) => <button key={l} aria-pressed={lang === l} onClick={() => setLang(l)}>{l.toUpperCase()}</button>)}
-        </div>
-      )}
-      <header className="hub-head">
-        {data.location.logoUrl && <img src={data.location.logoUrl} alt="" className="logo" />}
-        <span className="tbl">{t.table} {data.table.label}</span>
-        <h1>{data.location.name}</h1>
-        {data.location.tagline && <p>{data.location.tagline}</p>}
+    <div className="hub" data-hub-theme={data.settings.theme} style={{ ["--brand" as string]: data.location.brandColor }}>
+      <header className="hub-top">
+        <span className="tt-brand"><img src="/brand/taptab-icon.png" alt="" width={40} height={37} /><span className="tt-word">TapTab</span></span>
+        {data.settings.languages.includes("es") && (
+          <div className="lang" role="group" aria-label="Language">
+            {(["en", "es"] as Lang[]).map((l) => <button key={l} aria-pressed={lang === l} onClick={() => setLang(l)}>{l.toUpperCase()}</button>)}
+          </div>
+        )}
       </header>
-      {L(data.settings.special) && <div className="special"><b>{t.special}</b>{L(data.settings.special)}</div>}
+
+      <section className="hub-rest">
+        <div className="rest-id">
+          {data.location.logoUrl
+            ? <img src={data.location.logoUrl} alt="" className="rest-logo" />
+            : <span className="rest-logo mono" aria-hidden>{data.location.name.trim().charAt(0).toUpperCase()}</span>}
+          <div className="rest-name">
+            <h1>{data.location.name}</h1>
+            {data.location.tagline && <p>{data.location.tagline}</p>}
+          </div>
+        </div>
+        <span className="tbl-pill"><Icon name="table" />{t.table} {data.table.label}</span>
+      </section>
+
+      {special && (
+        <section className="special">
+          <span className="special-lbl"><span aria-hidden>✦</span> {t.special}</span>
+          <p>{special}</p>
+          <Swoosh />
+        </section>
+      )}
 
       <nav className="hub-actions">
-        {buttons.includes("menu") && <ActionButton k="menu" lang={lang} wide primary onClick={() => open("menu")} />}
-        {rest.map((k, i) => <ActionButton key={k} k={k} lang={lang} wide={rest.length % 2 === 1 && i === rest.length - 1} onClick={() => open(k)} />)}
+        {buttons.includes("menu") && (
+          <button className="menu-card" onClick={() => open("menu")}>
+            <span className="menu-ico"><Icon name="menu" /></span>
+            <span className="menu-txt"><b>{LABELS.menu[lang][0]}</b><small>{LABELS.menu[lang][1]}</small></span>
+            <span className="chev-dot"><Icon name="chevron" /></span>
+            <Swoosh />
+          </button>
+        )}
+        <div className="tiles">
+          {rest.map((k) => <ActionButton key={k} k={k} lang={lang} onClick={() => open(k)} />)}
+        </div>
       </nav>
-      <footer className="hub-foot">{t.powered}</footer>
+      <footer className="hub-foot"><span className="rule" />{t.powered} <b>TapTab</b><span className="rule" /></footer>
 
       {sheet && (
         <div className="sheet" onClick={(e) => e.target === e.currentTarget && setSheet(null)}>
@@ -120,13 +147,41 @@ export default function Hub({ data }: { data: HubData }) {
   );
 }
 
-function ActionButton({ k, lang, wide, primary, onClick }: { k: HubButton; lang: Lang; wide?: boolean; primary?: boolean; onClick: () => void }) {
+function ActionButton({ k, lang, onClick }: { k: HubButton; lang: Lang; onClick: () => void }) {
   const [title, sub] = LABELS[k][lang];
   return (
-    <button className={`act${wide ? " wide" : ""}${primary ? " primary" : ""}`} onClick={onClick}>
-      <span className="ico" aria-hidden>{LABELS[k].ico}</span>
-      <span><b>{title}</b><br /><small>{sub}</small></span>
+    <button className="tile" onClick={onClick}>
+      <span className="tile-ico"><Icon name={k} /></span>
+      <span className="tile-txt"><b>{title}</b><small>{sub}</small></span>
+      <span className="tile-chev"><Icon name="chevron" /></span>
     </button>
+  );
+}
+
+/** Line icons drawn to match the TapTab design. */
+function Icon({ name }: { name: string }) {
+  const p = { fill: "none", stroke: "currentColor", strokeWidth: 1.7, strokeLinecap: "round" as const, strokeLinejoin: "round" as const };
+  const paths: Record<string, React.ReactNode> = {
+    menu: <><path d="M2.5 5.2c2.8-1.1 6-1 9.5 1 3.5-2 6.7-2.1 9.5-1V19c-2.8-1.1-6-1-9.5 1-3.5-2-6.7-2.1-9.5-1Z" /><path d="M12 6.2V20" /><path d="M6.2 8.2v2.6a1.1 1.1 0 0 0 2.2 0V8.2M7.3 11.9v4.6" /><path d="M17.2 8.2c-1.2 1-1.4 3-1 4.6h1v3.7" /></>,
+    server: <><path d="M4.5 17a7.5 7.5 0 0 1 15 0" /><path d="M3 17.2h18" /><path d="M12 9.5V8" /><circle cx="12" cy="7" r="1" /><path d="M17.3 4.8l.9-1.4M19.6 7.2l1.5-.6" /></>,
+    wifi: <><path d="M2.5 9.2a14 14 0 0 1 19 0" /><path d="M5.6 12.6a9.4 9.4 0 0 1 12.8 0" /><path d="M8.7 16a4.8 4.8 0 0 1 6.6 0" /><circle cx="12" cy="19.2" r="1.1" fill="currentColor" stroke="none" /></>,
+    review: <path d="m12 3.2 2.7 5.5 6 .9-4.3 4.2 1 6-5.4-2.8-5.4 2.8 1-6-4.3-4.2 6-.9Z" />,
+    loyalty: <><rect x="3" y="5" width="18" height="14" rx="2.6" /><path d="M3 9.2h18" /><path d="m12 11.4.85 1.7 1.9.3-1.37 1.33.32 1.87-1.7-.9-1.7.9.32-1.87-1.37-1.33 1.9-.3Z" /></>,
+    instagram: <><rect x="3.5" y="3.5" width="17" height="17" rx="5" /><circle cx="12" cy="12" r="4" /><circle cx="17.2" cy="6.8" r="1" fill="currentColor" stroke="none" /></>,
+    tiktok: <><path d="M13.8 3v11.6a3.6 3.6 0 1 1-3.6-3.6" /><path d="M13.8 3c.4 2.7 2.3 4.5 5.2 4.7" /></>,
+    table: <><path d="M3 8.5h18" /><path d="M5.5 8.5V18M18.5 8.5V18" /><path d="M8 8.5v3.5h8V8.5" /></>,
+    chevron: <path d="m9.5 6 6 6-6 6" />,
+  };
+  return <svg viewBox="0 0 24 24" width="1em" height="1em" aria-hidden {...p}>{paths[name]}</svg>;
+}
+
+/** Gold accent curve used on the special banner and menu card. */
+function Swoosh() {
+  return (
+    <svg className="swoosh" viewBox="0 0 300 60" preserveAspectRatio="none" aria-hidden>
+      <path d="M0 58 C 90 50, 190 30, 300 4 V60 H0 Z" fill="currentColor" opacity=".14" />
+      <path d="M40 57 C 130 50, 215 32, 300 10" fill="none" stroke="currentColor" strokeWidth="2.2" />
+    </svg>
   );
 }
 

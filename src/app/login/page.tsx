@@ -8,7 +8,7 @@ export default async function Login({ searchParams }: { searchParams: Promise<{ 
   const { next, error } = await searchParams;
   return (
     <main className="auth">
-      <Link href="/" className="wordmark">TapTab</Link>
+      <Link href="/" className="wordmark"><img src="/brand/taptab-icon.png" alt="" width={30} height={28} />TapTab</Link>
       <h1>Sign in</h1>
       {error && <p className="error">That link has expired or was opened in a different browser. If you just confirmed your email, simply sign in below.</p>}
       <AuthForm action={signIn} submit="Sign in" hidden={{ next: next ?? "/app" }} fields={[

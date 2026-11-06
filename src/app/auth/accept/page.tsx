@@ -21,7 +21,7 @@ export default function AcceptInvite() {
   }, []);
   return (
     <main className="auth">
-      <span className="wordmark">TapTab</span>
+      <span className="wordmark"><img src="/brand/taptab-icon.png" alt="" width={30} height={28} />TapTab</span>
       {failed ? (
         <>
           <h1>This link has expired</h1>

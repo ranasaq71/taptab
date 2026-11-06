@@ -7,7 +7,7 @@ export const metadata = { title: "Create account · TapTab" };
 export default function Signup() {
   return (
     <main className="auth">
-      <Link href="/" className="wordmark">TapTab</Link>
+      <Link href="/" className="wordmark"><img src="/brand/taptab-icon.png" alt="" width={30} height={28} />TapTab</Link>
       <h1>Create your account</h1>
       <p className="muted">Restaurant owners: if TapTab invited you, use the link in your invite email instead.</p>
       <AuthForm action={signUp} submit="Create account" fields={[

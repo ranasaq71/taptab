@@ -6,7 +6,7 @@ export const metadata = { title: "Choose a password · TapTab" };
 export default function Reset() {
   return (
     <main className="auth">
-      <span className="wordmark">TapTab</span>
+      <span className="wordmark"><img src="/brand/taptab-icon.png" alt="" width={30} height={28} />TapTab</span>
       <h1>Choose a password</h1>
       <AuthForm action={updatePassword} submit="Save password" fields={[
         { name: "password", label: "New password (8+ characters)", type: "password", autoComplete: "new-password" },

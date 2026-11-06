@@ -2,7 +2,7 @@
 import { useActionState, useState } from "react";
 import { saveHub, uploadLogo, removeLogo } from "./actions";
 
-const SWATCHES = ["#1F4D36", "#7A2E3B", "#1E3A6B", "#8A4B12", "#2F2A28", "#5B2A86"];
+const SWATCHES = ["#6E1532", "#1F4D36", "#1E3A6B", "#8A4B12", "#2F2A28", "#5B2A86"];
 const BUTTON_LABELS: Record<string, string> = { menu: "Menu", server: "Call your server", wifi: "Wi‑Fi", review: "Leave a review", loyalty: "Rewards card", instagram: "Instagram", tiktok: "TikTok" };
 
 export type HubValues = {
@@ -10,12 +10,14 @@ export type HubValues = {
   special: string; special_es: string; wifi_name: string; wifi_password: string;
   google_review_url: string; instagram_url: string; tiktok_url: string; loyalty_goal: number; loyalty_reward: string;
   buttons: Record<string, boolean>;
+  theme: "light" | "dark";
 };
 
 export default function HubForm({ v, previewUrl }: { v: HubValues; previewUrl: string | null }) {
   const [state, action, pending] = useActionState(saveHub, {});
   const [logoState, logoAction, logoPending] = useActionState(uploadLogo, {});
   const [color, setColor] = useState(v.brand_color);
+  const [theme, setTheme] = useState(v.theme);
 
   return (
     <div className="hub-editor">
@@ -35,6 +37,26 @@ export default function HubForm({ v, previewUrl }: { v: HubValues; previewUrl: s
       </section>
 
       <form action={action}>
+        <section className="card">
+          <h2>Layout</h2>
+          <p className="muted small">How the page looks on guests’ phones. Your brand color is used in both.</p>
+          <div className="layout-pick" role="radiogroup" aria-label="Layout">
+            {(["light", "dark"] as const).map((t) => (
+              <label key={t} className={`layout-opt${theme === t ? " on" : ""}`}>
+                <input type="radio" name="theme" value={t} checked={theme === t} onChange={() => setTheme(t)} />
+                <span className={`mini mini-${t}`} style={{ ["--brand" as string]: color }} aria-hidden>
+                  <span className="mini-top"><i /><i className="mini-pill" /></span>
+                  <span className="mini-hero" />
+                  <span className="mini-menu" />
+                  <span className="mini-tiles"><i /><i /><i /><i /></span>
+                </span>
+                <b>{t === "light" ? "Light" : "Dark"}</b>
+                <small>{t === "light" ? "Bright and clean. Great for daytime and cafés." : "Rich and premium. Great for evening dining and bars."}</small>
+              </label>
+            ))}
+          </div>
+        </section>
+
         <section className="card">
           <h2>Restaurant</h2>
           <div className="grid-2">

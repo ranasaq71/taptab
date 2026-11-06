@@ -10,7 +10,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
   return (
     <div className="shell">
       <header className="shell-top">
-        <Link href="/dashboard" className="wordmark">TapTab</Link>
+        <Link href="/dashboard" className="wordmark"><img src="/brand/taptab-icon.png" alt="" width={30} height={28} />TapTab</Link>
         <span className="org">{m.orgName}</span>
         <nav className="shell-nav">
           <Link href="/dashboard">Overview</Link>
