@@ -1,0 +1,246 @@
+"use client";
+import { useState, useTransition } from "react";
+import * as A from "./actions";
+import { shrinkImage } from "./shrink";
+
+type L = { en?: string; es?: string };
+export type MItem = { id: string; name: L; description: L; priceCents: number | null; tags: string[]; photoUrl: string | null; available: boolean };
+export type MCat = { id: string; name: L; items: MItem[] };
+const TAG_LABEL: Record<string, string> = { veg: "Vegetarian", vegan: "Vegan", gf: "Gluten‑free", hot: "Spicy" };
+
+function useAct() {
+  const [pending, start] = useTransition();
+  const [msg, setMsg] = useState<{ error?: string; message?: string }>({});
+  const run = (fn: () => Promise<A.Result>) => start(async () => { const r = await fn(); setMsg({ error: r.error, message: r.message }); });
+  return { pending, msg, run, setMsg };
+}
+const Msg = ({ m }: { m: { error?: string; message?: string } }) =>
+  m.error ? <p className="error" role="alert">{m.error}</p> : m.message ? <p className="notice">{m.message}</p> : null;
+
+export default function MenuEditor({ cats, pdfUrl }: { cats: MCat[]; pdfUrl: string | null }) {
+  const dishes = cats.reduce((n, c) => n + c.items.length, 0);
+  return (
+    <>
+      <AiImport hasMenu={dishes > 0} />
+      <div className="menu-tools">
+        <Translate disabled={!dishes} />
+        <PdfMenu url={pdfUrl} />
+      </div>
+      {cats.map((c, i) => <Category key={c.id} c={c} first={i === 0} last={i === cats.length - 1} />)}
+      <AddCategory />
+    </>
+  );
+}
+
+// ---------- AI import ----------
+function AiImport({ hasMenu }: { hasMenu: boolean }) {
+  const [draft, setDraft] = useState<A.Draft | null>(null);
+  const { pending, msg, run, setMsg } = useAct();
+  const [reading, setReading] = useState(false);
+
+  async function read(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const input = e.currentTarget.elements.namedItem("file") as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file) return;
+    setReading(true); setMsg({}); setDraft(null);
+    const fd = new FormData();
+    fd.append("file", await shrinkImage(file, 2400, 0.85));
+    const r = await A.aiReadMenu(fd);
+    setReading(false);
+    setMsg({ error: r.error, message: r.message });
+    if (r.draft) setDraft(r.draft);
+  }
+
+  return (
+    <section className="card ai-card">
+      <h2>✨ Import your menu with AI</h2>
+      <p className="muted small">Upload a clear photo or PDF of the menu. TapTab reads the dishes, prices and sections for you to check before anything is saved. Diet labels are only added where the menu itself shows them.</p>
+      <form onSubmit={read} className="logo-form">
+        <input type="file" name="file" accept="image/*,application/pdf" required />
+        <button className="btn" disabled={reading}>{reading ? "Reading the menu… (up to a minute)" : "Read menu"}</button>
+      </form>
+      <Msg m={msg} />
+      {draft && (
+        <div className="draft">
+          {draft.categories.map((c, ci) => (
+            <div key={ci} className="draft-cat">
+              <h3>{c.name}</h3>
+              <ul>{c.items.map((i, ii) => (
+                <li key={ii}><span><b>{i.name}</b>{i.description ? <small> · {i.description}</small> : null}{(i.tags ?? []).map((t) => <span key={t} className="tag">{TAG_LABEL[t] ?? t}</span>)}</span><span>{i.price != null ? `$${i.price.toFixed(2)}` : "-"}</span></li>
+              ))}</ul>
+            </div>
+          ))}
+          <div className="save-bar">
+            <button className="btn" disabled={pending} onClick={() => run(async () => { const r = await A.aiSaveDraft(draft, "add"); if (r.ok) setDraft(null); return r; })}>{hasMenu ? "Add to my menu" : "Save as my menu"}</button>
+            {hasMenu && <button className="btn-sm" disabled={pending} onClick={() => { if (confirm("Replace your whole current menu with this one?")) run(async () => { const r = await A.aiSaveDraft(draft, "replace"); if (r.ok) setDraft(null); return r; }); }}>Replace my menu</button>}
+            <button className="link-btn" onClick={() => { setDraft(null); setMsg({}); }}>Discard</button>
+            <span className="muted small">You can fix anything after saving.</span>
+          </div>
+        </div>
+      )}
+    </section>
+  );
+}
+
+function Translate({ disabled }: { disabled: boolean }) {
+  const { pending, msg, run } = useAct();
+  return (
+    <section className="card">
+      <h2>🌎 Spanish menu</h2>
+      <p className="muted small">Fills in Spanish for every section, dish and description that doesn’t have it yet.</p>
+      <div className="row-gap">
+        <button className="btn" disabled={disabled || pending} onClick={() => run(() => A.aiTranslate(false))}>{pending ? "Translating…" : "Translate to Spanish"}</button>
+        <button className="link-btn" disabled={disabled || pending} onClick={() => { if (confirm("Re-translate everything, replacing Spanish you’ve edited?")) run(() => A.aiTranslate(true)); }}>Redo all</button>
+      </div>
+      <Msg m={msg} />
+    </section>
+  );
+}
+
+function PdfMenu({ url }: { url: string | null }) {
+  const { pending, msg, run } = useAct();
+  return (
+    <section className="card">
+      <h2>📄 Full menu PDF (optional)</h2>
+      <p className="muted small">Shows a “View full menu (PDF)” button under your dishes.</p>
+      {url && <p><a href={url} target="_blank" rel="noopener">Current PDF ↗</a> · <button className="link-btn" onClick={() => run(A.removeMenuPdf)}>Remove</button></p>}
+      <form className="logo-form" onSubmit={(e) => { e.preventDefault(); const fd = new FormData(e.currentTarget); run(() => A.uploadMenuPdf(fd)); }}>
+        <input type="file" name="pdf" accept="application/pdf" required />
+        <button className="btn-sm" disabled={pending}>{pending ? "Uploading…" : url ? "Replace PDF" : "Upload PDF"}</button>
+      </form>
+      <Msg m={msg} />
+    </section>
+  );
+}
+
+// ---------- Categories & dishes ----------
+function Category({ c, first, last }: { c: MCat; first: boolean; last: boolean }) {
+  const [editing, setEditing] = useState(false);
+  const [adding, setAdding] = useState(false);
+  const { pending, msg, run } = useAct();
+  return (
+    <section className="card">
+      <div className="cat-head">
+        {editing ? (
+          <form className="row-gap" onSubmit={(e) => { e.preventDefault(); const f = new FormData(e.currentTarget); run(async () => { const r = await A.saveCategory({ id: c.id, en: String(f.get("en")), es: String(f.get("es")) }); if (r.ok) setEditing(false); return r; }); }}>
+            <input name="en" defaultValue={c.name.en} placeholder="Section (English)" required />
+            <input name="es" defaultValue={c.name.es} placeholder="Sección (español)" />
+            <button className="btn-sm" disabled={pending}>Save</button>
+            <button type="button" className="link-btn" onClick={() => setEditing(false)}>Cancel</button>
+          </form>
+        ) : (
+          <h2>{c.name.en}{c.name.es && <span className="muted es"> · {c.name.es}</span>}</h2>
+        )}
+        <div className="row-gap">
+          <button className="icon-btn" disabled={first || pending} onClick={() => run(() => A.moveCategory(c.id, -1))} aria-label="Move section up">↑</button>
+          <button className="icon-btn" disabled={last || pending} onClick={() => run(() => A.moveCategory(c.id, 1))} aria-label="Move section down">↓</button>
+          {!editing && <button className="link-btn" onClick={() => setEditing(true)}>Rename</button>}
+          <button className="link-btn danger" onClick={() => { if (confirm(`Delete “${c.name.en}” and its ${c.items.length} dishes?`)) run(() => A.deleteCategory(c.id)); }}>Delete</button>
+        </div>
+      </div>
+      <Msg m={msg} />
+      <div className="dishes">
+        {c.items.map((i, k) => <Dish key={i.id} item={i} categoryId={c.id} first={k === 0} last={k === c.items.length - 1} />)}
+        {!c.items.length && !adding && <p className="muted small">No dishes yet.</p>}
+      </div>
+      {adding ? <DishForm categoryId={c.id} onDone={() => setAdding(false)} /> : <button className="btn-sm" onClick={() => setAdding(true)}>+ Add dish</button>}
+    </section>
+  );
+}
+
+function Dish({ item, categoryId, first, last }: { item: MItem; categoryId: string; first: boolean; last: boolean }) {
+  const [editing, setEditing] = useState(false);
+  const { pending, msg, run } = useAct();
+  if (editing) return <DishForm item={item} categoryId={categoryId} onDone={() => setEditing(false)} />;
+  return (
+    <div className={`dish${item.available ? "" : " off"}`}>
+      {item.photoUrl ? <img src={item.photoUrl} alt="" className="dish-photo" /> : <div className="dish-photo empty" />}
+      <div className="dish-main">
+        <b>{item.name.en}</b>{item.name.es && <span className="muted es"> · {item.name.es}</span>}
+        {item.description.en && <small>{item.description.en}</small>}
+        <div className="tags">{item.tags.map((t) => <span key={t} className="tag">{TAG_LABEL[t]}</span>)}{!item.available && <span className="tag off-tag">Sold out / hidden</span>}</div>
+        <Msg m={msg} />
+      </div>
+      <div className="dish-price">{item.priceCents != null ? `$${(item.priceCents / 100).toFixed(2)}` : ""}</div>
+      <div className="dish-actions">
+        <button className="icon-btn" disabled={first || pending} onClick={() => run(() => A.moveItem(item.id, -1))} aria-label="Move up">↑</button>
+        <button className="icon-btn" disabled={last || pending} onClick={() => run(() => A.moveItem(item.id, 1))} aria-label="Move down">↓</button>
+        <button className="link-btn" onClick={() => run(() => A.toggleItem(item.id, !item.available))}>{item.available ? "Hide" : "Show"}</button>
+        <button className="link-btn" onClick={() => setEditing(true)}>Edit</button>
+      </div>
+    </div>
+  );
+}
+
+function DishForm({ item, categoryId, onDone }: { item?: MItem; categoryId: string; onDone: () => void }) {
+  const { pending, msg, run } = useAct();
+  const photo = useAct();
+  const [tags, setTags] = useState<string[]>(item?.tags ?? []);
+  function submit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const f = new FormData(e.currentTarget);
+    const s = (k: string) => String(f.get(k) ?? "");
+    run(async () => {
+      const r = await A.saveItem({ id: item?.id, categoryId, nameEn: s("nameEn"), nameEs: s("nameEs"), descEn: s("descEn"), descEs: s("descEs"), price: s("price").replace("$", ""), tags: tags as any, available: f.get("available") === "on" });
+      if (r.ok) onDone();
+      return r;
+    });
+  }
+  async function upload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file || !item) return;
+    const fd = new FormData();
+    fd.append("itemId", item.id);
+    fd.append("photo", await shrinkImage(file, 1200, 0.82));
+    photo.run(() => A.uploadItemPhoto(fd));
+  }
+  return (
+    <form className="dish-form" onSubmit={submit}>
+      <div className="grid-2">
+        <label className="field"><span>Dish name</span><input name="nameEn" defaultValue={item?.name.en} required /></label>
+        <label className="field"><span>Name in Spanish (optional)</span><input name="nameEs" defaultValue={item?.name.es} /></label>
+        <label className="field"><span>Description</span><input name="descEn" defaultValue={item?.description.en} /></label>
+        <label className="field"><span>Description in Spanish (optional)</span><input name="descEs" defaultValue={item?.description.es} /></label>
+        <label className="field"><span>Price ($)</span><input name="price" inputMode="decimal" defaultValue={item?.priceCents != null ? (item.priceCents / 100).toFixed(2) : ""} placeholder="12.50" /></label>
+        <div className="field"><span>Diet labels</span>
+          <div className="chips">{Object.entries(TAG_LABEL).map(([k, label]) => (
+            <button type="button" key={k} className="chip" aria-pressed={tags.includes(k)} onClick={() => setTags((t) => t.includes(k) ? t.filter((x) => x !== k) : [...t, k])}>{label}</button>
+          ))}</div>
+        </div>
+      </div>
+      <label className="check-row"><input type="checkbox" name="available" defaultChecked={item?.available ?? true} /> Show on the menu</label>
+      {item && (
+        <div className="row-gap">
+          <span className="small">Photo:</span>
+          <input type="file" accept="image/*" onChange={upload} disabled={photo.pending} />
+          {item.photoUrl && <button type="button" className="link-btn" onClick={() => photo.run(() => A.removeItemPhoto(item.id))}>Remove photo</button>}
+          {photo.pending && <span className="muted small">Uploading…</span>}
+        </div>
+      )}
+      {!item && <p className="muted small">Save the dish first, then add a photo.</p>}
+      <Msg m={photo.msg} />
+      <Msg m={msg} />
+      <div className="row-gap">
+        <button className="btn" disabled={pending}>{pending ? "Saving…" : "Save dish"}</button>
+        <button type="button" className="link-btn" onClick={onDone}>Cancel</button>
+        {item && <button type="button" className="link-btn danger" onClick={() => { if (confirm(`Delete “${item.name.en}”?`)) run(async () => { const r = await A.deleteItem(item.id); if (r.ok) onDone(); return r; }); }}>Delete dish</button>}
+      </div>
+    </form>
+  );
+}
+
+function AddCategory() {
+  const { pending, msg, run } = useAct();
+  return (
+    <section className="card">
+      <h2>Add a section</h2>
+      <form className="row-gap" onSubmit={(e) => { e.preventDefault(); const form = e.currentTarget; const f = new FormData(form); run(async () => { const r = await A.saveCategory({ en: String(f.get("en")), es: String(f.get("es")) }); if (r.ok) form.reset(); return r; }); }}>
+        <input name="en" placeholder="e.g. Desserts" required />
+        <input name="es" placeholder="Postres (optional)" />
+        <button className="btn" disabled={pending}>Add section</button>
+      </form>
+      <Msg m={msg} />
+    </section>
+  );
+}
