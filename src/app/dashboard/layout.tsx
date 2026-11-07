@@ -14,9 +14,11 @@ export default async function DashboardLayout({ children }: { children: React.Re
         <span className="org">{m.orgName}</span>
         <nav className="shell-nav">
           <Link href="/dashboard">Overview</Link>
+          <Link href="/dashboard/live">Live</Link>
           {(m.role === "owner" || m.role === "manager") && <Link href="/dashboard/hub">Hub</Link>}
           {(m.role === "owner" || m.role === "manager") && <Link href="/dashboard/menu">Menu</Link>}
           {(m.role === "owner" || m.role === "manager") && <Link href="/dashboard/tables">Tables</Link>}
+          {(m.role === "owner" || m.role === "manager") && <Link href="/dashboard/staff">Staff</Link>}
           {m.role === "owner" && <Link href="/dashboard/team">Team</Link>}
           {s.isAdmin && <Link href="/admin">Admin</Link>}
           <SignOut />

@@ -1,7 +1,8 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import { z } from "zod";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { TAG_CODE } from "@/lib/hub";
+import { sendSms } from "@/lib/sms";
 
 const base = { code: z.string().regex(TAG_CODE), sessionId: z.string().max(64).optional() };
 const Body = z.discriminatedUnion("action", [
@@ -44,7 +45,8 @@ export async function POST(req: Request) {
       if (existing?.length) return NextResponse.json({ ok: true, duplicate: true });
       const { error } = await db.from("service_requests").insert({ ...where, kind: b.kind });
       if (error) return NextResponse.json({ error: "Could not send" }, { status: 500 });
-      // TODO (Day 6): text the staff assigned to this table's section via Twilio.
+      // Text the servers for this table's section, after the guest already has their answer.
+      after(() => alertStaff(tag.location_id!, tag.table_id!, b.kind));
       return NextResponse.json({ ok: true });
     }
 
@@ -77,4 +79,21 @@ export async function POST(req: Request) {
       return NextResponse.json({ ok: true, stamps: reward ? goal : stamps % goal, goal, reward, rewardText: reward ? hub?.loyalty_reward : null });
     }
   }
+}
+
+const KIND_TEXT = { help: "needs help", check: "wants the check", refill: "wants drink refills" } as const;
+
+/** Texts staff whose section covers this table (staff with no sections get every table). */
+async function alertStaff(locationId: string, tableId: string, kind: keyof typeof KIND_TEXT) {
+  const db = supabaseAdmin();
+  const [{ data: table }, { data: loc }, { data: staff }] = await Promise.all([
+    db.from("dining_tables").select("label, section").eq("id", tableId).maybeSingle(),
+    db.from("locations").select("name").eq("id", locationId).maybeSingle(),
+    db.from("staff_contacts").select("phone_e164, sections").eq("location_id", locationId).eq("alerts_on", true),
+  ]);
+  if (!table || !staff?.length) return;
+  const section = table.section?.trim().toUpperCase();
+  const targets = staff.filter((s) => !s.sections?.length || (section && s.sections.map((x: string) => x.toUpperCase()).includes(section)));
+  const body = `TapTab · ${loc?.name ?? "Restaurant"}: Table ${table.label} ${KIND_TEXT[kind]}.`;
+  await Promise.allSettled(targets.map((s) => sendSms(s.phone_e164, body)));
 }
