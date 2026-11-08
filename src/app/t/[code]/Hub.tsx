@@ -8,14 +8,14 @@ const T = {
         notePh: "Type a note", sendNote: "Send to the manager", noteSent: "Sent to the manager. Thank you.",
         serverIntro: "Your server gets an alert right away.", help: "I need help", check: "Bring the check", refill: "Refill our drinks", notified: "Your server has been notified",
         loyaltyIntro: (g: number, r: string) => `Collect ${g} stamps: ${r}.`, phone: "Mobile number", consent: "Save my rewards card to this number. No spam.",
-        stamp: "Collect today’s stamp", ready: "Reward ready! Show this screen to your server:", stamped: "Today’s stamp collected", already: "You already collected a stamp today", reward: "Reward unlocked:",
+        stamp: "Collect today’s stamp", ready: "Reward ready! Show this screen to your server:", stamped: "Today’s stamp collected", already: "You already collected today’s stamp. See you next visit!", needPhone: "Enter your 10-digit mobile number.", needConsent: "Tick the box above to save your card.", welcome: "Welcome back! Card for", notYou: "Not you?", reward: "Reward unlocked:",
         pdf: "View full menu (PDF)", error: "Something went wrong. Please ask your server.", powered: "Powered by" },
   es: { table: "Mesa", special: "Especial de hoy", close: "Cerrar", all: "Todos", menuTitle: "Menú", network: "Red", password: "Contraseña", copy: "Copiar contraseña", copied: "Contraseña copiada",
         how: "¿Cómo estuvo todo hoy?", google: "Publicar en Google", notePrompt: "¿Algo que el gerente deba saber? Solo lo verá el gerente.",
         notePh: "Escribe aquí", sendNote: "Enviar al gerente", noteSent: "Enviado. Gracias.",
         serverIntro: "Tu mesero recibirá una alerta.", help: "Necesito ayuda", check: "Traer la cuenta", refill: "Rellenar bebidas", notified: "Tu mesero ya va en camino",
         loyaltyIntro: (g: number, r: string) => `Junta ${g} sellos: ${r}.`, phone: "Número de celular", consent: "Guardar mi tarjeta con este número. Sin spam.",
-        stamp: "Recibir el sello de hoy", ready: "¡Premio listo! Muestra esta pantalla a tu mesero:", stamped: "Sello de hoy recibido", already: "Ya recibiste el sello de hoy", reward: "Premio desbloqueado:",
+        stamp: "Recibir el sello de hoy", ready: "¡Premio listo! Muestra esta pantalla a tu mesero:", stamped: "Sello de hoy recibido", already: "Ya recibiste el sello de hoy. ¡Hasta tu próxima visita!", needPhone: "Escribe tu número de 10 dígitos.", needConsent: "Marca la casilla para guardar tu tarjeta.", welcome: "¡Bienvenido de nuevo! Tarjeta de", notYou: "¿No eres tú?", reward: "Premio desbloqueado:",
         pdf: "Ver menú completo (PDF)", error: "Algo salió mal. Pide ayuda a tu mesero.", powered: "Con tecnología de" },
 };
 const LABELS: Record<HubButton, { ico: string; en: [string, string]; es: [string, string] }> = {
@@ -311,33 +311,62 @@ function ReviewSheet({ data, t, send, track, done, onError }: { data: HubData; t
 
 function LoyaltySheet({ data, t, send, onToast }: { data: HubData; t: typeof T.en; send: (b: Record<string, unknown>) => Promise<any>; onToast: (m: string) => void }) {
   const goal = data.settings.loyaltyGoal;
+  // The guest's number and last stamp count are remembered on their own phone only.
+  const key = `taptab-card-${data.location.id}`;
   const [phone, setPhone] = useState("");
   const [consent, setConsent] = useState(false);
-  const [state, setState] = useState<{ stamps: number; done: boolean; available?: number; rewardText?: string } | null>(null);
+  const [saved, setSaved] = useState<string | null>(null);
+  const [state, setState] = useState<{ stamps: number; done: boolean; available?: number; rewardText?: string; note?: string } | null>(null);
   const [busy, setBusy] = useState(false);
+  const [problem, setProblem] = useState("");
   const stamps = state?.stamps ?? 0;
+
+  useEffect(() => {
+    try {
+      const c = JSON.parse(localStorage.getItem(key) ?? "null");
+      if (c?.phone) { setPhone(c.phone); setConsent(true); setSaved(c.phone); setState({ stamps: c.stamps ?? 0, done: false, available: c.available }); }
+    } catch {}
+  }, [key]);
+
   async function collect() {
-    setBusy(true);
+    if (phone.replace(/\D/g, "").length < 10) { setProblem(t.needPhone); return; }
+    if (!consent) { setProblem(t.needConsent); return; }
+    setProblem(""); setBusy(true);
     try {
       const r = await send({ action: "stamp", phone, consent: true });
-      setState({ stamps: r.stamps, done: true, available: r.available, rewardText: r.rewardText });
+      setState({ stamps: r.stamps, done: true, available: r.available, rewardText: r.rewardText, note: r.alreadyStamped ? t.already : undefined });
+      try { localStorage.setItem(key, JSON.stringify({ phone, stamps: r.stamps, available: r.available })); setSaved(phone); } catch {}
       onToast(r.reward ? `${t.reward} ${r.rewardText}` : r.alreadyStamped ? t.already : t.stamped);
-    } catch (e: any) { onToast(e.message); } finally { setBusy(false); }
+    } catch (e: any) { setProblem(e.message); } finally { setBusy(false); }
   }
+  function forget() {
+    try { localStorage.removeItem(key); } catch {}
+    setSaved(null); setPhone(""); setConsent(false); setState(null); setProblem("");
+  }
+  const last4 = saved ? saved.replace(/\D/g, "").slice(-4) : "";
+
   return (
     <>
       <p className="muted">{t.loyaltyIntro(goal, data.settings.loyaltyReward)}</p>
+      {saved && <p className="welcome-back">{t.welcome} •••{last4} · <button className="link-btn" onClick={forget}>{t.notYou}</button></p>}
       {!!state?.available && state.available > 0 && (
         <div className="reward-ready" role="status">🎉 {t.ready} <b>{state.rewardText ?? data.settings.loyaltyReward}</b>{state.available > 1 ? ` (×${state.available})` : ""}</div>
       )}
       <div className="stamps" style={{ gridTemplateColumns: `repeat(${Math.min(goal, 5)}, 1fr)` }}>
         {Array.from({ length: goal }, (_, i) => <div key={i} className={`stamp${i < stamps ? " on" : ""}`}>{i < stamps ? "✓" : ""}</div>)}
       </div>
-      {!state?.done && (
+      {state?.done ? (
+        state.note && <p className="muted center">{state.note}</p>
+      ) : (
         <>
-          <label className="field"><span>{t.phone}</span><input inputMode="tel" autoComplete="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="(281) 555-0101" /></label>
-          <label className="check"><input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} /> {t.consent}</label>
-          <button className="big-btn" disabled={!consent || phone.replace(/\D/g, "").length < 10 || busy} onClick={collect}>{t.stamp}</button>
+          {!saved && (
+            <>
+              <label className="field"><span>{t.phone}</span><input inputMode="tel" autoComplete="tel" value={phone} onChange={(e) => { setPhone(e.target.value); setProblem(""); }} placeholder="(281) 555-0101" /></label>
+              <label className="check"><input type="checkbox" checked={consent} onChange={(e) => { setConsent(e.target.checked); setProblem(""); }} /> {t.consent}</label>
+            </>
+          )}
+          <button className="big-btn" disabled={busy} onClick={collect}>{busy ? "…" : t.stamp}</button>
+          {problem && <p className="error center" role="alert">{problem}</p>}
         </>
       )}
     </>
