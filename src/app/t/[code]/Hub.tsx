@@ -8,14 +8,14 @@ const T = {
         notePh: "Type a note", sendNote: "Send to the manager", noteSent: "Sent to the manager. Thank you.",
         serverIntro: "Your server gets an alert right away.", help: "I need help", check: "Bring the check", refill: "Refill our drinks", notified: "Your server has been notified",
         loyaltyIntro: (g: number, r: string) => `Collect ${g} stamps: ${r}.`, phone: "Mobile number", consent: "Save my rewards card to this number. No spam.",
-        stamp: "Collect today’s stamp", stamped: "Today’s stamp collected", already: "You already collected a stamp today", reward: "Reward unlocked:",
+        stamp: "Collect today’s stamp", ready: "Reward ready! Show this screen to your server:", stamped: "Today’s stamp collected", already: "You already collected a stamp today", reward: "Reward unlocked:",
         pdf: "View full menu (PDF)", error: "Something went wrong. Please ask your server.", powered: "Powered by" },
   es: { table: "Mesa", special: "Especial de hoy", close: "Cerrar", all: "Todos", menuTitle: "Menú", network: "Red", password: "Contraseña", copy: "Copiar contraseña", copied: "Contraseña copiada",
         how: "¿Cómo estuvo todo hoy?", google: "Publicar en Google", notePrompt: "¿Algo que el gerente deba saber? Solo lo verá el gerente.",
         notePh: "Escribe aquí", sendNote: "Enviar al gerente", noteSent: "Enviado. Gracias.",
         serverIntro: "Tu mesero recibirá una alerta.", help: "Necesito ayuda", check: "Traer la cuenta", refill: "Rellenar bebidas", notified: "Tu mesero ya va en camino",
         loyaltyIntro: (g: number, r: string) => `Junta ${g} sellos: ${r}.`, phone: "Número de celular", consent: "Guardar mi tarjeta con este número. Sin spam.",
-        stamp: "Recibir el sello de hoy", stamped: "Sello de hoy recibido", already: "Ya recibiste el sello de hoy", reward: "Premio desbloqueado:",
+        stamp: "Recibir el sello de hoy", ready: "¡Premio listo! Muestra esta pantalla a tu mesero:", stamped: "Sello de hoy recibido", already: "Ya recibiste el sello de hoy", reward: "Premio desbloqueado:",
         pdf: "Ver menú completo (PDF)", error: "Algo salió mal. Pide ayuda a tu mesero.", powered: "Con tecnología de" },
 };
 const LABELS: Record<HubButton, { ico: string; en: [string, string]; es: [string, string] }> = {
@@ -313,20 +313,23 @@ function LoyaltySheet({ data, t, send, onToast }: { data: HubData; t: typeof T.e
   const goal = data.settings.loyaltyGoal;
   const [phone, setPhone] = useState("");
   const [consent, setConsent] = useState(false);
-  const [state, setState] = useState<{ stamps: number; done: boolean } | null>(null);
+  const [state, setState] = useState<{ stamps: number; done: boolean; available?: number; rewardText?: string } | null>(null);
   const [busy, setBusy] = useState(false);
   const stamps = state?.stamps ?? 0;
   async function collect() {
     setBusy(true);
     try {
       const r = await send({ action: "stamp", phone, consent: true });
-      setState({ stamps: r.stamps, done: true });
+      setState({ stamps: r.stamps, done: true, available: r.available, rewardText: r.rewardText });
       onToast(r.reward ? `${t.reward} ${r.rewardText}` : r.alreadyStamped ? t.already : t.stamped);
     } catch (e: any) { onToast(e.message); } finally { setBusy(false); }
   }
   return (
     <>
       <p className="muted">{t.loyaltyIntro(goal, data.settings.loyaltyReward)}</p>
+      {!!state?.available && state.available > 0 && (
+        <div className="reward-ready" role="status">🎉 {t.ready} <b>{state.rewardText ?? data.settings.loyaltyReward}</b>{state.available > 1 ? ` (×${state.available})` : ""}</div>
+      )}
       <div className="stamps" style={{ gridTemplateColumns: `repeat(${Math.min(goal, 5)}, 1fr)` }}>
         {Array.from({ length: goal }, (_, i) => <div key={i} className={`stamp${i < stamps ? " on" : ""}`}>{i < stamps ? "✓" : ""}</div>)}
       </div>

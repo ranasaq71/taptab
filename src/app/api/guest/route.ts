@@ -69,14 +69,14 @@ export async function POST(req: Request) {
 
       // One stamp per visit: no second stamp within 12 hours.
       if (card?.last_stamp_at && Date.now() - new Date(card.last_stamp_at).getTime() < 12 * 3600_000) {
-        return NextResponse.json({ ok: true, alreadyStamped: true, stamps: card.stamps % goal, goal, reward: false });
+        return NextResponse.json({ ok: true, alreadyStamped: true, stamps: card.stamps % goal, goal, reward: false, available: Math.floor(card.stamps / goal) - card.rewards_used, rewardText: hub?.loyalty_reward });
       }
       const stamps = (card?.stamps ?? 0) + 1;
       const now = new Date().toISOString();
       if (card) await db.from("loyalty_cards").update({ stamps, last_stamp_at: now }).eq("id", card.id);
       else await db.from("loyalty_cards").insert({ location_id: tag.location_id, phone_e164: phone, stamps, last_stamp_at: now });
       const reward = stamps % goal === 0;
-      return NextResponse.json({ ok: true, stamps: reward ? goal : stamps % goal, goal, reward, rewardText: reward ? hub?.loyalty_reward : null });
+      return NextResponse.json({ ok: true, stamps: reward ? goal : stamps % goal, goal, reward, available: Math.floor(stamps / goal) - (card?.rewards_used ?? 0), rewardText: hub?.loyalty_reward });
     }
   }
 }
