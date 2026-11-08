@@ -25,6 +25,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
         <nav className="shell-nav">
           <Link href="/dashboard">Overview</Link>
           <Link href="/dashboard/live">Live</Link>
+          {editor && <Link href="/dashboard/analytics">Analytics</Link>}
           {editor && <Link href="/dashboard/hub">Hub</Link>}
           {editor && <Link href="/dashboard/menu">Menu</Link>}
           {editor && <Link href="/dashboard/tables">Tables</Link>}

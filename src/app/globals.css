@@ -433,3 +433,29 @@ textarea { min-height: 88px; resize: vertical; }
 .issues { margin: 0; padding-left: 16px; color: #B3311B; font-size: 13px; }
 .ok { color: #2FA866; font-weight: 700; font-size: 14px; }
 .row-actions { display: grid; gap: 6px; justify-items: start; white-space: nowrap; }
+
+/* ---------- Analytics ---------- */
+.stats em { font-style: normal; font-weight: 700; font-size: 13px; }
+.stats em.up { color: #2FA866; } .stats em.down { color: #D2452B; }
+.an-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 0 20px; }
+.an-wide { grid-column: 1 / -1; }
+.bars { display: flex; align-items: flex-end; gap: 4px; padding-top: 6px; }
+.bar-col { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; min-width: 0; }
+.bar { width: 100%; max-width: 38px; min-height: 2px; border-radius: 6px 6px 2px 2px; background: linear-gradient(180deg, #8A2446, #6E1532); }
+.bar-val { font-size: 11px; color: var(--muted); margin-bottom: 3px; }
+.bar-lbl { font-size: 11px; color: var(--muted); margin-top: 6px; white-space: nowrap; height: 14px; }
+.hbars { display: grid; gap: 8px; margin: 8px 0; }
+.hbar { display: grid; grid-template-columns: 120px 1fr auto; gap: 10px; align-items: center; font-size: 14px; }
+.hbar-lbl { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hbar-track { height: 10px; border-radius: 999px; background: var(--soft); overflow: hidden; }
+.hbar-track i { display: block; height: 100%; border-radius: 999px; background: linear-gradient(90deg, #6E1532, #D6AE62); }
+.hbar-val { font-weight: 700; white-space: nowrap; } .hbar-val small { font-weight: 400; color: var(--muted); }
+.funnel { display: grid; gap: 6px; justify-items: center; margin: 12px 0; }
+.funnel-step { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 10px 14px; border-radius: 10px; background: #6E1532; color: #fff; font-size: 14px; }
+.funnel-step:nth-child(2) { background: #8A2446; } .funnel-step:nth-child(3) { background: #D6AE62; color: #2A0E17; }
+.funnel-step b { font-size: 18px; }
+.mini-stats { display: flex; gap: 22px; flex-wrap: wrap; margin: 6px 0 10px; }
+.mini-stats b { display: block; font-size: 24px; } .mini-stats span { color: var(--muted); font-size: 13px; }
+.split { display: flex; justify-content: space-between; gap: 10px; font-size: 14px; margin-top: 14px; }
+.split-bar { display: block; height: 10px; border-radius: 999px; background: #D6AE62; overflow: hidden; margin-top: 6px; }
+.split-bar i { display: block; height: 100%; background: #6E1532; }
