@@ -429,3 +429,7 @@ textarea { min-height: 88px; resize: vertical; }
 .reward-ready { margin: 12px 0; padding: 14px; border-radius: 14px; background: linear-gradient(135deg, var(--gold-2), var(--gold)); color: #2A0E17; font-weight: 700; text-align: center; animation: pop .4s ease; }
 .welcome-back { margin: 6px 0 0; font-size: 14px; color: var(--sub); }
 .sheet-panel .error { color: #E0573B; margin-top: 10px; }
+.support-bar { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; padding: 10px 20px; background: #FFF4CF; color: #3d3205; border-bottom: 1px solid #F0D982; font-size: 14px; }
+.issues { margin: 0; padding-left: 16px; color: #B3311B; font-size: 13px; }
+.ok { color: #2FA866; font-weight: 700; font-size: 14px; }
+.row-actions { display: grid; gap: 6px; justify-items: start; white-space: nowrap; }

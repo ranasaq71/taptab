@@ -53,6 +53,7 @@ export default async function RewardsPage({ searchParams }: { searchParams: Prom
       <section className="card">
         <div className="cat-head">
           <h2>{lookup ? "Result" : "Members"}</h2>
+          {!lookup && !!all?.length && <a className="btn-sm" href="/dashboard/rewards/export">⬇ Export to spreadsheet (CSV)</a>}
           {!lookup && (
             <div className="seg">
               <a href="/dashboard/rewards" aria-current={sp.sort !== "stamps" ? "page" : undefined}>Recent visits</a>
@@ -83,6 +84,7 @@ export default async function RewardsPage({ searchParams }: { searchParams: Prom
           </div>
         ) : !lookup && <p className="live-empty">No members yet. Guests join by tapping “Rewards card” at their table and entering their number.</p>}
       </section>
+      <p className="muted small">The export includes guests’ mobile numbers. Guests agreed to a rewards card, not marketing, so don’t use the list for promotional texts unless they’ve separately agreed to receive them.</p>
     </>
   );
 }

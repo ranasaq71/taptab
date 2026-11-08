@@ -41,6 +41,9 @@ export async function saveHub(_: FormState, f: FormData): Promise<FormState> {
     buttons, theme: v.theme, loyalty_goal: v.loyalty_goal, loyalty_reward: v.loyalty_reward, updated_at: new Date().toISOString(),
   }).eq("location_id", ctx.location.id);
   if (e1 || e2) return { error: "Couldn’t save. Please try again." };
+  // One location = one business: keep the account name in step (owners only; ignored for managers).
+  const { count } = await ctx.db.from("locations").select("id", { count: "exact", head: true }).eq("org_id", ctx.location.org_id);
+  if (count === 1) await ctx.db.from("organizations").update({ name: v.name }).eq("id", ctx.location.org_id);
   revalidatePath("/dashboard/hub");
   return { message: "Saved. Every table shows the new version now." };
 }

@@ -1,14 +1,14 @@
 import { redirect } from "next/navigation";
-import { requireUser } from "@/lib/auth/session";
+import { requireLocation } from "@/lib/auth/session";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import InviteForm from "./InviteForm";
 
 export const metadata = { title: "Team · TapTab" };
 
 export default async function Team() {
-  const s = await requireUser("/dashboard/team");
-  const m = s.memberships[0];
-  if (!m || m.role !== "owner") redirect("/dashboard");
+  const ctx = await requireLocation("/dashboard/team");
+  if (ctx.role !== "owner") redirect("/dashboard");
+  const m = { orgId: ctx.orgId };
   // Names and emails of teammates come from the admin client, after confirming this person is the owner.
   const admin = supabaseAdmin();
   const { data: rows } = await admin.from("org_members").select("user_id, role, profile:profiles(full_name)").eq("org_id", m.orgId);
