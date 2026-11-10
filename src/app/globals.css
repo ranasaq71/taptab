@@ -459,3 +459,16 @@ textarea { min-height: 88px; resize: vertical; }
 .split { display: flex; justify-content: space-between; gap: 10px; font-size: 14px; margin-top: 14px; }
 .split-bar { display: block; height: 10px; border-radius: 999px; background: #D6AE62; overflow: hidden; margin-top: 6px; }
 .split-bar i { display: block; height: 100%; background: #6E1532; }
+
+/* ---------- Admin manage page ---------- */
+.field.inline { display: inline-grid; margin: 0; }
+.field.inline select, .row-gap select { border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; background: var(--surface); }
+.sub-h { font-size: 15px; margin: 18px 0 4px; }
+.order { display: grid; gap: 8px; padding: 12px 0; border-bottom: 1px solid var(--line); }
+.order-main { display: grid; gap: 2px; }
+.steps { display: flex; gap: 0; list-style: none; padding: 0; margin: 0; flex-wrap: wrap; }
+.steps li { font-size: 13px; padding: 4px 12px; border: 1px solid var(--line); color: var(--muted); }
+.steps li:first-child { border-radius: 999px 0 0 999px; } .steps li:last-child { border-radius: 0 999px 999px 0; }
+.steps li.on { background: #6E1532; color: #fff; border-color: #6E1532; }
+.num { width: 70px; border: 1px solid var(--line); border-radius: 8px; padding: 7px 9px; background: var(--surface); }
+tr.dim { opacity: .55; }

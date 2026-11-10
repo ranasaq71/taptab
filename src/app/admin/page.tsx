@@ -16,7 +16,7 @@ const ago = (iso: string | null) => {
 export default async function Admin() {
   const { db } = await requireAdmin();
   const week = new Date(Date.now() - 7 * DAY).toISOString();
-  const [{ data: orgs }, { data: taps }, { data: reqs }, { data: tags }, { data: hubs }, { data: staff }, { data: items }, { data: cards }, { data: notes }] = await Promise.all([
+  const [{ data: orgs }, { data: taps }, { data: reqs }, { data: tags }, { data: hubs }, { data: staff }, { data: items }, { data: cards }, { data: notes }, { data: hw }] = await Promise.all([
     db.from("organizations").select("id, name, plan, status, created_at, locations(id, name, created_at)").order("created_at", { ascending: false }),
     db.from("events").select("location_id").eq("type", "tap").gte("created_at", week).limit(100000),
     db.from("service_requests").select("location_id, status, created_at, resolved_at").or(`status.eq.open,created_at.gte.${week}`).limit(50000),
@@ -26,6 +26,7 @@ export default async function Admin() {
     db.from("menu_items").select("id, menu_categories!inner(menus!inner(location_id))").limit(100000),
     db.from("loyalty_cards").select("location_id, last_stamp_at"),
     db.from("guest_notes").select("location_id, stars, read_at").gte("created_at", week),
+    db.from("hardware_orders").select("location_id, status, created_at").order("created_at", { ascending: false }),
   ]);
 
   const by = <T,>(rows: T[] | null, key: (r: T) => string | null | undefined) => {
@@ -35,6 +36,7 @@ export default async function Admin() {
   const staffBy = by(staff, (r) => r.location_id), cardBy = by(cards, (r) => r.location_id), noteBy = by(notes, (r) => r.location_id);
   const itemBy = by(items, (r: any) => { const c = Array.isArray(r.menu_categories) ? r.menu_categories[0] : r.menu_categories; const m = Array.isArray(c?.menus) ? c.menus[0] : c?.menus; return m?.location_id; });
   const googleBy = new Map((hubs ?? []).map((h) => [h.location_id, h.google_review_url]));
+  const hwBy = new Map<string, string>(); for (const o of hw ?? []) if (!hwBy.has(o.location_id)) hwBy.set(o.location_id, o.status);
 
   const rows = (orgs ?? []).flatMap((o: any) => (o.locations ?? []).map((l: any) => {
     const lt = tagBy.get(l.id) ?? [], lr = reqBy.get(l.id) ?? [];
@@ -52,7 +54,7 @@ export default async function Admin() {
     if (!googleBy.get(l.id)) issues.push("No Google review link");
     if (!(staffBy.get(l.id)?.length)) issues.push("No staff for alerts");
     return { org: o, loc: l, taps: tapsBy.get(l.id)?.length ?? 0, open: open.length, stuck, avg, lastTap, tables: lt.length, members: cardBy.get(l.id)?.length ?? 0,
-      lowNotes: (noteBy.get(l.id) ?? []).filter((n) => (n.stars ?? 5) <= 3).length, issues };
+      lowNotes: (noteBy.get(l.id) ?? []).filter((n) => (n.stars ?? 5) <= 3).length, issues, hardware: hwBy.get(l.id) ?? null };
   }));
 
   const sum = (f: (r: (typeof rows)[number]) => number) => rows.reduce((s, r) => s + f(r), 0);
@@ -74,7 +76,7 @@ export default async function Admin() {
         <h2>Restaurants &amp; health</h2>
         <div className="tbl-wrap">
           <table className="tbl">
-            <thead><tr><th>Restaurant</th><th>Plan</th><th>Taps (7d)</th><th>Last tap</th><th>Open</th><th>Avg response</th><th>Members</th><th>Needs attention</th><th></th></tr></thead>
+            <thead><tr><th>Restaurant</th><th>Plan</th><th>Taps (7d)</th><th>Last tap</th><th>Open</th><th>Avg response</th><th>Members</th><th>Hardware</th><th>Needs attention</th><th></th></tr></thead>
             <tbody>
               {rows.map((r) => (
                 <tr key={r.loc.id}>
@@ -85,10 +87,11 @@ export default async function Admin() {
                   <td>{r.open ? <span className={r.stuck ? "pill warn-pill" : "pill"}>{r.open}</span> : "0"}</td>
                   <td>{r.avg != null ? `${Math.round(r.avg)} min` : "-"}</td>
                   <td>{r.members}</td>
+                  <td>{r.hardware ? <span className="pill">{r.hardware}</span> : <span className="muted small">none</span>}</td>
                   <td>{r.issues.length ? <ul className="issues">{r.issues.map((i: string) => <li key={i}>{i}</li>)}</ul> : <span className="ok">✓ Healthy</span>}{r.lowNotes ? <div className="muted small">{r.lowNotes} low-rated note{r.lowNotes > 1 ? "s" : ""}</div> : null}</td>
                   <td className="row-actions">
                     <form action={openSupport.bind(null, r.loc.id)}><button className="btn-sm">Open dashboard</button></form>
-                    <Link href={`/admin/locations/${r.loc.id}`} className="small">Tags &amp; QR</Link>
+                    <Link href={`/admin/locations/${r.loc.id}`} className="small">Manage →</Link>
                   </td>
                 </tr>
               ))}
