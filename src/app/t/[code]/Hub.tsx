@@ -87,7 +87,7 @@ export default function Hub({ data }: { data: HubData }) {
             {data.location.tagline && <p>{data.location.tagline}</p>}
           </div>
         </div>
-        <span className="tbl-pill"><Icon name="table" />{t.table} {data.table.label}</span>
+        <span className="tbl-pill"><Icon name="table" />{/^\d+$/.test(data.table.label) ? `${t.table} ${data.table.label}` : data.table.label}</span>
       </section>
 
       {special && (
