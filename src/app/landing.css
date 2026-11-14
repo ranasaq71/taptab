@@ -42,7 +42,29 @@
 
 /* ---------- Hero ---------- */
 .lp-hero { position: relative; min-height: 100svh; background: var(--wine); color: #F7EEF0; display: grid; grid-template-columns: 1fr auto; align-items: end; gap: 32px; padding: 104px 28px 32px; overflow: hidden; }
-.lp-hero-canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+/* Hero animation: phone + three signal lines (HeroWaves.tsx) */
+.lp-waves { position: absolute; z-index: 0; right: 10vw; top: 50%; transform: translateY(-58%); width: min(70vw, 880px); aspect-ratio: 1; pointer-events: none; }
+.lp-waves svg { width: 100%; height: 100%; overflow: visible; }
+.lp-waves-glow { position: absolute; inset: 18%; border-radius: 50%; background: radial-gradient(circle at 42% 50%, rgba(110, 21, 50, .75), rgba(110, 21, 50, 0) 62%); animation: lp-breathe 3.6s ease-in-out infinite; }
+.lp-waves-phone { animation: lp-float 3.6s ease-in-out infinite; transform-origin: 220px 300px; }
+.lp-waves-phone .body { fill: none; stroke: #F2D79B; stroke-width: 5; }
+.lp-waves-phone .dot { fill: var(--gold-2); animation: lp-tapdot 3.6s ease-out infinite; transform-origin: 220px 300px; }
+.lp-waves .arc { fill: none; stroke-linecap: round; stroke-dasharray: 1; stroke-dashoffset: 1; animation: lp-draw 3.6s cubic-bezier(.3, .7, .2, 1) infinite; }
+.lp-waves .arc.main { stroke: url(#lp-wave-gold); stroke-width: 14; }
+.lp-waves .a2 { animation-delay: .25s; } .lp-waves .a3 { animation-delay: .5s; }
+.lp-waves .arc.echo { stroke: var(--gold); stroke-width: 2; animation-name: lp-echo; }
+.lp-waves .e1 { animation-delay: .8s; } .lp-waves .e2 { animation-delay: 1.05s; } .lp-waves .e3 { animation-delay: 1.3s; }
+.lp-waves .a1 { animation-delay: 0s; }
+@keyframes lp-draw { 0% { stroke-dashoffset: 1; opacity: 1 } 22% { stroke-dashoffset: 0; opacity: 1 } 62% { stroke-dashoffset: 0; opacity: 1 } 85%, 100% { stroke-dashoffset: 0; opacity: 0 } }
+@keyframes lp-echo { 0% { stroke-dashoffset: 1; opacity: .5 } 25% { stroke-dashoffset: 0; opacity: .45 } 70%, 100% { stroke-dashoffset: 0; opacity: 0 } }
+@keyframes lp-tapdot { 0%, 4% { opacity: 0; transform: scale(.4) } 10% { opacity: 1; transform: scale(1) } 30%, 100% { opacity: 0; transform: scale(2.4) } }
+@keyframes lp-float { 0%, 100% { transform: rotate(-12deg) translateY(0) } 50% { transform: rotate(-12deg) translateY(-8px) } }
+@keyframes lp-breathe { 0%, 100% { opacity: .7; transform: scale(1) } 50% { opacity: 1; transform: scale(1.05) } }
+/* Logo: the three signal lines ripple in time with the hero */
+.lp-logo { width: 36px; height: auto; display: block; overflow: visible; }
+.lp-logo .la { fill: none; stroke: #fff; stroke-width: 7; stroke-linecap: round; opacity: .3; animation: lp-lwave 3.6s ease-in-out infinite; }
+.lp-logo .la2 { animation-delay: .25s; } .lp-logo .la3 { animation-delay: .5s; }
+@keyframes lp-lwave { 0%, 100% { opacity: .3 } 12%, 40% { opacity: 1 } }
 .lp-hero-copy, .lp-hero-card { position: relative; z-index: 1; }
 .lp-hero h1 { margin: 0; font-weight: 300; font-size: clamp(54px, 8.4vw, 128px); line-height: .9; letter-spacing: -.045em; }
 .lp-hero-copy p { margin: 26px 0 0; max-width: 46ch; font-size: clamp(16px, 1.35vw, 19px); line-height: 1.5; color: #D9C8CD; }
@@ -218,6 +240,7 @@
   .lp-nav.compact { left: 14px; right: 14px; }
   .lp-hero { grid-template-columns: 1fr; padding: 110px 18px 22px; }
   .lp-hero-card { width: 100%; }
+  .lp-waves { right: -22vw; top: 22%; width: 105vw; opacity: .5; }
   .lp-statement { grid-template-columns: 1fr; gap: 6px; padding: 90px 18px; }
   .lp-chapters { height: auto; background: var(--wine); color: #F7EEF0; }
   .lp-pin { display: none; }
@@ -232,6 +255,8 @@
   .lp-foot { padding-left: 18px; padding-right: 18px; }
 }
 @media (prefers-reduced-motion: reduce) {
+  .lp-waves .arc { animation: none; stroke-dashoffset: 0; } .lp-waves .arc.echo { opacity: .2; }
+  .lp-waves-phone, .lp-waves-glow, .lp-waves-phone .dot { animation: none; } .lp-logo .la { animation: none; opacity: 1; }
   .lp *, .lp *::before, .lp *::after { animation: none !important; transition: none !important; }
   .lp-words span { opacity: 1 !important; }
 }

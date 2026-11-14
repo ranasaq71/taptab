@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import TapTabLogo from "./TapTabLogo";
 
 const LINKS = [
   { href: "#how", label: "How it works" },
@@ -18,7 +19,7 @@ export default function LandingNav() {
   return (
     <header className={`lp-nav${compact ? " compact" : ""}`}>
       <a href="#top" className="lp-brand" aria-label="TapTab home">
-        <img src="/brand/taptab-icon.png" alt="" width={34} height={31} />
+        <TapTabLogo id="nav" />
         <span>TapTab</span>
       </a>
       <nav className="lp-chips" aria-label="Main">

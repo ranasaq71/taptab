@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import HeroCanvas from "@/components/landing/HeroCanvas";
+import HeroWaves from "@/components/landing/HeroWaves";
 import LandingNav from "@/components/landing/LandingNav";
 import ScrollWords from "@/components/landing/ScrollWords";
 import Chapters from "@/components/landing/Chapters";
@@ -26,7 +26,7 @@ export default function Home() {
       <LandingNav />
 
       <section className="lp-hero">
-        <HeroCanvas />
+        <HeroWaves />
         <div className="lp-hero-copy">
           <h1>One tap.<br />The whole table.</h1>
           <p>Guests hold their phone to a TapTab stand to see your menu, call a server, leave a review and collect rewards. No app to download.</p>
