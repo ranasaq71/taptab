@@ -106,9 +106,12 @@ export default function Home() {
 
       <footer className="lp-foot">
         <span className="lp-brand small"><img src="/brand/taptab-icon.png" alt="" width={24} height={22} /><span>TapTab</span></span>
+        <span className="lp-copy">© {new Date().getFullYear()} TapTab</span>
         <span>Made in Houston, Texas</span>
         <a href="/login">Restaurant sign in</a>
-        <span>© {new Date().getFullYear()} TapTab</span>
+        <a href="https://brandrise.us" className="lp-parent" target="_blank" rel="noopener">
+          <span className="lp-parent-a">A</span><b>BRANDRISE</b><span className="lp-parent-a">COMPANY</span>
+        </a>
       </footer>
     </div>
   );

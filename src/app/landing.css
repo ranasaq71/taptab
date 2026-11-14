@@ -224,7 +224,12 @@
 
 /* ---------- Footer ---------- */
 .lp-foot { display: flex; flex-wrap: wrap; gap: 14px 28px; align-items: center; padding: 26px 28px 34px; background: var(--wine); color: rgba(233,220,224,.65); font-size: 14px; border-top: 1px solid rgba(245,237,234,.08); }
-.lp-foot .lp-brand { margin-right: auto; font-size: 17px; }
+.lp-foot .lp-brand { font-size: 17px; }
+.lp-foot .lp-copy { margin-right: auto; }
+.lp .lp-parent { display: inline-flex; align-items: baseline; gap: 14px; color: rgba(233,220,224,.5); }
+.lp-parent-a { font-size: 12px; letter-spacing: .28em; text-transform: uppercase; }
+.lp-parent b { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-weight: 700; font-size: 18px; letter-spacing: .38em; margin-right: -.38em; color: rgba(233,220,224,.72); }
+.lp .lp-parent:hover b { color: var(--gold-2); }
 .lp-brand.small img { width: 24px; }
 .lp-foot a:hover { color: var(--gold-2); }
 
