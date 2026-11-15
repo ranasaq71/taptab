@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
 import type { HubButton, HubData, Lang, Localized } from "@/lib/hub";
+import { ruleText, type ModGroup } from "@/lib/modifiers";
 
 const T = {
   en: { table: "Table", special: "Today’s Special", close: "Close", all: "All Dishes", menuTitle: "Menu", network: "Network", password: "Password", copy: "Copy password", copied: "Password copied",
@@ -117,7 +118,7 @@ export default function Hub({ data }: { data: HubData }) {
         <div className="sheet" onClick={(e) => e.target === e.currentTarget && setSheet(null)}>
           <div className={`sheet-panel${sheet === "menu" ? " menu-panel" : ""}`} role="dialog" aria-modal="true" aria-labelledby="sheet-title">
             {sheet === "menu" ? (
-              <MenuSheet data={data} L={L} t={t} onClose={() => setSheet(null)} />
+              <MenuSheet data={data} L={L} t={t} lang={lang} onClose={() => setSheet(null)} />
             ) : (
               <div className="sheet-top">
                 <h2 id="sheet-title">{LABELS[sheet][lang][0]}</h2>
@@ -188,7 +189,7 @@ function Swoosh() {
   );
 }
 
-function MenuSheet({ data, L, t, onClose }: { data: HubData; L: (o?: Localized) => string; t: typeof T.en; onClose: () => void }) {
+function MenuSheet({ data, L, t, lang, onClose }: { data: HubData; L: (o?: Localized) => string; t: typeof T.en; lang: Lang; onClose: () => void }) {
   const [filter, setFilter] = useState("all");
   const isSpicy = (i: { heat: number; tags: string[] }) => i.heat > 0 || i.tags.includes("hot");
   const match = (i: HubData["menu"]["categories"][number]["items"][number]) =>
@@ -231,6 +232,7 @@ function MenuSheet({ data, L, t, onClose }: { data: HubData; L: (o?: Localized) 
                     {i.photoUrl ? <img src={i.photoUrl} alt="" loading="lazy" /> : <span className="mcard-ph"><MIcon name="leafmark" /></span>}
                     <b>{L(i.name)}</b>
                     {L(i.description) && <small>{L(i.description)}</small>}
+                    <Mods groups={i.modifiers} L={L} lang={lang} />
                     <Heat n={i.heat} scale />
                     {i.priceCents != null && <span className="mprice sm">{money(i.priceCents)}</span>}
                   </div>
@@ -244,6 +246,7 @@ function MenuSheet({ data, L, t, onClose }: { data: HubData; L: (o?: Localized) 
                     <div className="mrow-main">
                       <b>{L(i.name)} <Heat n={i.heat} /></b>
                       {L(i.description) && <small>{L(i.description)}</small>}
+                      <Mods groups={i.modifiers} L={L} lang={lang} />
                       {i.tags.some((x) => x === "veg" || x === "vegan" || x === "gf") && (
                         <div className="tags">{i.tags.filter((x) => x !== "hot" && TAGS[x]).map((x) => <span key={x} className="tag">{L(TAGS[x])}</span>)}</div>
                       )}
@@ -258,6 +261,23 @@ function MenuSheet({ data, L, t, onClose }: { data: HubData; L: (o?: Localized) 
       })}
       {data.menu.pdfUrl && <a className="big-btn ghost" href={data.menu.pdfUrl} target="_blank" rel="noopener">{t.pdf}</a>}
     </>
+  );
+}
+
+/** A dish's choices, e.g. "Wing Flavor · Choose 1" with chips for each option and any upcharge. */
+function Mods({ groups, L, lang }: { groups: ModGroup[]; L: (o?: Localized) => string; lang: Lang }) {
+  if (!groups?.length) return null;
+  return (
+    <div className="mods">
+      {groups.map((g, gi) => (
+        <div key={gi} className="mod">
+          <span className="mod-h"><b>{L(g.name)}</b> · {ruleText(g, lang)}</span>
+          <span className="mod-opts">{g.options.map((o, oi) => (
+            <span key={oi} className="mod-opt">{L(o.name)}{o.priceCents > 0 && <em> +${(o.priceCents / 100).toFixed(2)}</em>}</span>
+          ))}</span>
+        </div>
+      ))}
+    </div>
   );
 }
 

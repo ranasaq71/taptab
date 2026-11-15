@@ -26,6 +26,50 @@ export function AccountForm({ locationId, orgId, plan, status }: { locationId: s
   );
 }
 
+export function FreeMonths({ locationId, orgId, freeUntil, note }: { locationId: string; orgId: string; freeUntil: string | null; note: string | null }) {
+  const a = useAct();
+  const active = !!freeUntil && new Date(freeUntil) > new Date();
+  const shown = freeUntil ? new Date(freeUntil).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric", timeZone: "America/Chicago" }) : "";
+  return (
+    <div className="free-box">
+      {active
+        ? <p><span className="pill ok-pill">Free</span> <b>Free until {shown}</b>{note ? <span className="muted small"> · {note}</span> : null}</p>
+        : <p className="muted small">{freeUntil ? `Free period ended ${shown}.` : "No free period."} Free months skip billing for this restaurant.</p>}
+      <form className="row-gap" onSubmit={(e) => { e.preventDefault(); const f = new FormData(e.currentTarget); a.run(() => A.grantFreeMonths(locationId, orgId, Number(f.get("months")), String(f.get("note") ?? ""))); }}>
+        <label className="field inline"><span>Months</span>
+          <select name="months" defaultValue="3">{[1, 2, 3, 6, 12].map((m) => <option key={m} value={m}>{m} month{m > 1 ? "s" : ""}</option>)}</select>
+        </label>
+        <input name="note" placeholder="Reason, e.g. Pilot customer" maxLength={120} />
+        <button className="btn-sm" disabled={a.pending}>{active ? "Add free months" : "Give free months"}</button>
+        {active && <button type="button" className="link-btn danger" disabled={a.pending} onClick={() => { if (confirm("End the free period now?")) a.run(() => A.endFree(locationId, orgId)); }}>End free period</button>}
+      </form>
+      <Msg m={a.msg} />
+    </div>
+  );
+}
+
+export function OwnerLogin({ locationId, orgId, restaurant, site }: { locationId: string; orgId: string; restaurant: string; site: string }) {
+  const [pending, start] = useTransition();
+  const [res, setRes] = useState<{ error?: string; password?: string; email?: string }>({});
+  const [copied, setCopied] = useState(false);
+  const share = res.password ? `Hi! Your TapTab dashboard for ${restaurant} is ready.\n\nSign in: ${site}/login\nEmail: ${res.email}\nTemporary password: ${res.password}\n\nAfter signing in, tap “Password” at the top to choose your own.` : "";
+  if (res.password) return (
+    <div className="free-box">
+      <p className="notice small">Login created. Copy this now: the password is only shown once.</p>
+      <pre className="share-box">{share}</pre>
+      <button type="button" className="btn-sm" onClick={async () => { try { await navigator.clipboard.writeText(share); setCopied(true); } catch {} }}>{copied ? "Copied ✓" : "Copy message"}</button>
+    </div>
+  );
+  return (
+    <form className="row-gap" onSubmit={(e) => { e.preventDefault(); const f = new FormData(e.currentTarget); start(async () => setRes(await A.createOwnerLogin(locationId, orgId, { name: String(f.get("name") ?? ""), email: String(f.get("email") ?? "") }))); }}>
+      <input name="name" placeholder="Owner’s name" maxLength={80} />
+      <input name="email" type="email" placeholder="owner@email.com" required />
+      <button className="btn-sm" disabled={pending}>{pending ? "Creating…" : "Create login"}</button>
+      {res.error && <p className="error small">{res.error}</p>}
+    </form>
+  );
+}
+
 const STEPS = ["ordered", "encoded", "shipped", "installed"] as const;
 const STEP_LABEL: Record<string, string> = { ordered: "Ordered", encoded: "Encoded", shipped: "Shipped", installed: "Installed" };
 const TYPE_LABEL: Record<string, string> = { standard: "Standard TapTab stands", custom: "Custom branded stands", sticker: "Stickers" };

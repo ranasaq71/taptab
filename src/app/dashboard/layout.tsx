@@ -34,6 +34,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
           {editor && <Link href="/dashboard/rewards">Rewards</Link>}
           {d.role === "owner" && <Link href="/dashboard/team">Team</Link>}
           {s.isAdmin && <Link href="/admin">Admin</Link>}
+          <Link href="/reset-password">Password</Link>
           <SignOut />
         </nav>
       </header>

@@ -4,7 +4,8 @@ import { requireAdmin } from "@/lib/auth/session";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import InviteForm from "@/app/dashboard/team/InviteForm";
 import { openSupport } from "../../support";
-import { AccountForm, OrderRow, AddOrder, SpareTags, TagToggle } from "./Controls";
+import { siteUrl } from "@/lib/site";
+import { AccountForm, FreeMonths, OwnerLogin, OrderRow, AddOrder, SpareTags, TagToggle } from "./Controls";
 
 export const metadata = { title: "Manage restaurant · TapTab admin" };
 export const dynamic = "force-dynamic";
@@ -14,7 +15,7 @@ const day = (iso: string | null) => (iso ? new Date(iso).toLocaleDateString("en-
 export default async function ManageLocation({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const { db } = await requireAdmin();
-  const { data: loc } = await db.from("locations").select("id, name, slug, org_id, created_at, organizations(id, name, plan, status, created_at)").eq("id", id).maybeSingle();
+  const { data: loc } = await db.from("locations").select("id, name, slug, org_id, created_at, organizations(id, name, plan, status, created_at, free_until, free_note)").eq("id", id).maybeSingle();
   if (!loc) notFound();
   const org: any = Array.isArray((loc as any).organizations) ? (loc as any).organizations[0] : (loc as any).organizations;
   const [{ data: orders }, { data: tags }, { data: tables }, { data: members }] = await Promise.all([
@@ -49,7 +50,8 @@ export default async function ManageLocation({ params }: { params: Promise<{ id:
       <section className="card">
         <h2>Account</h2>
         <AccountForm locationId={loc.id} orgId={loc.org_id} plan={org?.plan ?? "essential"} status={org?.status ?? "trial"} />
-        <p className="muted small">Billing with Stripe arrives on Day 10; until then, set the plan and status here by hand.</p>
+        <FreeMonths locationId={loc.id} orgId={loc.org_id} freeUntil={org?.free_until ?? null} note={org?.free_note ?? null} />
+        <p className="muted small">Billing with Stripe isn’t connected yet; set the plan and status here by hand. When it is, restaurants in a free period won’t be charged until it ends.</p>
       </section>
 
       <section className="card">
@@ -95,7 +97,10 @@ export default async function ManageLocation({ params }: { params: Promise<{ id:
             {team.map((p) => <li key={p.id}><b>{p.name || p.email}</b> <span className="muted small">{p.email} · last sign-in {day(p.lastSignIn)}</span> <span className="pill">{p.role}</span></li>)}
           </ul>
         ) : <p className="muted small">No one has access yet. Invite the owner below.</p>}
-        <h3 className="sub-h">Invite someone</h3>
+        <h3 className="sub-h">Create the owner’s login</h3>
+        <p className="muted small">Makes a login with a temporary password you share with the owner yourself (text or WhatsApp). No email needed.</p>
+        <OwnerLogin locationId={loc.id} orgId={loc.org_id} restaurant={loc.name} site={await siteUrl()} />
+        <h3 className="sub-h">Invite someone by email</h3>
         <InviteForm orgId={loc.org_id} />
       </section>
     </>

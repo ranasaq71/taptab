@@ -2,9 +2,10 @@
 import { useState, useTransition } from "react";
 import * as A from "./actions";
 import { shrinkImage } from "./shrink";
+import { ruleText, type ModGroup } from "@/lib/modifiers";
 
 type L = { en?: string; es?: string };
-export type MItem = { id: string; name: L; description: L; priceCents: number | null; tags: string[]; photoUrl: string | null; available: boolean; heat: number };
+export type MItem = { id: string; name: L; description: L; priceCents: number | null; tags: string[]; photoUrl: string | null; available: boolean; heat: number; modifiers: ModGroup[] };
 export type MCat = { id: string; name: L; subtitle: L; display: "list" | "cards"; items: MItem[] };
 const TAG_LABEL: Record<string, string> = { veg: "Vegetarian", vegan: "Vegan", gf: "Gluten‑free", hot: "Spicy" };
 const DIET = ["veg", "vegan", "gf"] as const;
@@ -171,6 +172,7 @@ function Dish({ item, categoryId, first, last }: { item: MItem; categoryId: stri
       <div className="dish-main">
         <b>{item.name.en}{flames(item.heat)}</b>{item.name.es && <span className="muted es"> · {item.name.es}</span>}
         {item.description.en && <small>{item.description.en}</small>}
+        {item.modifiers.length > 0 && <small className="mod-sum">{item.modifiers.map((g) => `${g.name.en} (${ruleText(g)}): ${g.options.map((o) => o.name.en + (o.priceCents ? ` +$${(o.priceCents / 100).toFixed(2)}` : "")).join(", ")}`).join(" · ")}</small>}
         <div className="tags">{item.tags.filter((t) => t !== "hot").map((t) => <span key={t} className="tag">{TAG_LABEL[t]}</span>)}{!item.available && <span className="tag off-tag">Sold out / hidden</span>}</div>
         <Msg m={msg} />
       </div>
@@ -190,12 +192,13 @@ function DishForm({ item, categoryId, onDone }: { item?: MItem; categoryId: stri
   const photo = useAct();
   const [tags, setTags] = useState<string[]>((item?.tags ?? []).filter((t) => t !== "hot"));
   const [heat, setHeat] = useState<number>(item?.heat ?? 0);
+  const [mods, setMods] = useState<ModGroup[]>(item?.modifiers ?? []);
   function submit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const f = new FormData(e.currentTarget);
     const s = (k: string) => String(f.get(k) ?? "");
     run(async () => {
-      const r = await A.saveItem({ id: item?.id, categoryId, nameEn: s("nameEn"), nameEs: s("nameEs"), descEn: s("descEn"), descEs: s("descEs"), price: s("price").replace("$", ""), tags: tags as any, heat, available: f.get("available") === "on" });
+      const r = await A.saveItem({ id: item?.id, categoryId, nameEn: s("nameEn"), nameEs: s("nameEs"), descEn: s("descEn"), descEs: s("descEs"), price: s("price").replace("$", ""), tags: tags as any, heat, modifiers: mods, available: f.get("available") === "on" });
       if (r.ok) onDone();
       return r;
     });
@@ -227,6 +230,7 @@ function DishForm({ item, categoryId, onDone }: { item?: MItem; categoryId: stri
           ))}</div>
         </div>
       </div>
+      <ModsEditor mods={mods} setMods={setMods} />
       <label className="check-row"><input type="checkbox" name="available" defaultChecked={item?.available ?? true} /> Show on the menu</label>
       {item && (
         <div className="row-gap">
@@ -245,6 +249,47 @@ function DishForm({ item, categoryId, onDone }: { item?: MItem; categoryId: stri
         {item && <button type="button" className="link-btn danger" onClick={() => { if (confirm(`Delete “${item.name.en}”?`)) run(async () => { const r = await A.deleteItem(item.id); if (r.ok) onDone(); return r; }); }}>Delete dish</button>}
       </div>
     </form>
+  );
+}
+
+// ---------- Options & add-ons (modifier groups) ----------
+const blankGroup = (): ModGroup => ({ name: { en: "" }, required: true, min: 1, max: 1, options: [{ name: { en: "" }, priceCents: 0 }] });
+
+function ModsEditor({ mods, setMods }: { mods: ModGroup[]; setMods: (m: ModGroup[]) => void }) {
+  const set = (gi: number, g: Partial<ModGroup>) => setMods(mods.map((x, i) => (i === gi ? { ...x, ...g } : x)));
+  const setOpt = (gi: number, oi: number, o: Partial<ModGroup["options"][number]>) =>
+    set(gi, { options: mods[gi].options.map((x, i) => (i === oi ? { ...x, ...o } : x)) });
+  return (
+    <div className="mods-ed">
+      <div className="mods-ed-h"><b>Options &amp; add-ons</b><span className="muted small">e.g. a flavor guests must pick, or paid extras.</span></div>
+      {mods.map((g, gi) => (
+        <div key={gi} className="mod-group">
+          <div className="row-gap">
+            <input value={g.name.en ?? ""} onChange={(e) => set(gi, { name: { ...g.name, en: e.target.value } })} placeholder="Group name, e.g. Wing Flavor" required aria-label="Group name" />
+            <input value={g.name.es ?? ""} onChange={(e) => set(gi, { name: { ...g.name, es: e.target.value } })} placeholder="En español (optional)" aria-label="Group name in Spanish" />
+            <select value={g.required ? "req" : "opt"} aria-label="Required or optional"
+              onChange={(e) => { const req = e.target.value === "req"; set(gi, { required: req, min: req ? Math.max(1, g.min) : 0, max: Math.max(g.max, 1) }); }}>
+              <option value="req">Required</option><option value="opt">Optional</option>
+            </select>
+            <label className="small">{g.required ? "Pick" : "Up to"}{" "}
+              <input type="number" min={1} max={20} value={g.max} style={{ width: 60 }} aria-label="How many choices"
+                onChange={(e) => { const n = Math.max(1, Math.min(20, Number(e.target.value) || 1)); set(gi, { max: n, min: g.required ? n : 0 }); }} />
+            </label>
+            <button type="button" className="link-btn danger" onClick={() => setMods(mods.filter((_, i) => i !== gi))}>Remove group</button>
+          </div>
+          {g.options.map((o, oi) => (
+            <div key={oi} className="row-gap mod-opt-row">
+              <input value={o.name.en ?? ""} onChange={(e) => setOpt(gi, oi, { name: { ...o.name, en: e.target.value } })} placeholder="Option, e.g. Lemon Pepper" required aria-label="Option name" />
+              <label className="small">+$ <input inputMode="decimal" defaultValue={o.priceCents ? (o.priceCents / 100).toFixed(2) : ""} placeholder="0.00" style={{ width: 80 }} aria-label="Extra price"
+                onChange={(e) => setOpt(gi, oi, { priceCents: Math.max(0, Math.round((parseFloat(e.target.value.replace("$", "")) || 0) * 100)) })} /></label>
+              <button type="button" className="icon-btn" aria-label="Remove option" disabled={g.options.length === 1} onClick={() => set(gi, { options: g.options.filter((_, i) => i !== oi) })}>×</button>
+            </div>
+          ))}
+          <button type="button" className="link-btn" onClick={() => set(gi, { options: [...g.options, { name: { en: "" }, priceCents: 0 }] })}>+ Add option</button>
+        </div>
+      ))}
+      <button type="button" className="btn-sm" onClick={() => setMods([...mods, blankGroup()])}>+ Add option group</button>
+    </div>
   );
 }
 

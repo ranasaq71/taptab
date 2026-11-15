@@ -1,11 +1,12 @@
 import "server-only";
 import { supabaseAdmin } from "@/lib/supabase/admin";
+import { readMods, type ModGroup } from "@/lib/modifiers";
 
 export type Lang = "en" | "es";
 export type Localized = Partial<Record<Lang, string>>;
 export type HubButton = "menu" | "server" | "wifi" | "review" | "loyalty" | "instagram" | "tiktok";
 
-export interface HubItem { id: string; name: Localized; description: Localized; priceCents: number | null; tags: string[]; photoUrl: string | null; heat: number }
+export interface HubItem { id: string; name: Localized; description: Localized; priceCents: number | null; tags: string[]; photoUrl: string | null; heat: number; modifiers: ModGroup[] }
 export interface HubCategory { id: string; name: Localized; subtitle: Localized; display: "list" | "cards"; items: HubItem[] }
 export interface HubData {
   tagCode: string;
@@ -43,7 +44,7 @@ export async function loadHubByTag(rawCode: string): Promise<HubData | null> {
 
   const { data: menu } = await db
     .from("menus")
-    .select("pdf_url, categories:menu_categories(id,name,subtitle,display,sort_order, items:menu_items(id,name,description,price_cents,tags,photo_url,available,sort_order,heat))")
+    .select("pdf_url, categories:menu_categories(id,name,subtitle,display,sort_order, items:menu_items(id,name,description,price_cents,tags,photo_url,available,sort_order,heat,modifiers))")
     .eq("location_id", loc.id).eq("active", true)
     .order("created_at", { ascending: true }).limit(1).maybeSingle();
 
@@ -51,7 +52,7 @@ export async function loadHubByTag(rawCode: string): Promise<HubData | null> {
   const categories: HubCategory[] = ((menu?.categories as any[]) ?? []).sort(bySort).map((c) => ({
     id: c.id, name: c.name, subtitle: c.subtitle ?? {}, display: (c.display === "cards" ? "cards" : "list") as "list" | "cards",
     items: (c.items as any[]).filter((i) => i.available).sort(bySort).map((i) => ({
-      id: i.id, name: i.name, description: i.description ?? {}, priceCents: i.price_cents, tags: i.tags ?? [], photoUrl: i.photo_url, heat: i.heat ?? ((i.tags ?? []).includes("hot") ? 1 : 0),
+      id: i.id, name: i.name, description: i.description ?? {}, priceCents: i.price_cents, tags: i.tags ?? [], photoUrl: i.photo_url, heat: i.heat ?? ((i.tags ?? []).includes("hot") ? 1 : 0), modifiers: readMods(i.modifiers),
     })),
   })).filter((c) => c.items.length);
 

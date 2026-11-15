@@ -17,7 +17,7 @@ export default async function Admin() {
   const { db } = await requireAdmin();
   const week = new Date(Date.now() - 7 * DAY).toISOString();
   const [{ data: orgs }, { data: taps }, { data: reqs }, { data: tags }, { data: hubs }, { data: staff }, { data: items }, { data: cards }, { data: notes }, { data: hw }] = await Promise.all([
-    db.from("organizations").select("id, name, plan, status, created_at, locations(id, name, created_at)").order("created_at", { ascending: false }),
+    db.from("organizations").select("id, name, plan, status, created_at, free_until, locations(id, name, created_at)").order("created_at", { ascending: false }),
     db.from("events").select("location_id").eq("type", "tap").gte("created_at", week).limit(100000),
     db.from("service_requests").select("location_id, status, created_at, resolved_at").or(`status.eq.open,created_at.gte.${week}`).limit(50000),
     db.from("tags").select("location_id, status, last_tap_at"),
@@ -81,7 +81,7 @@ export default async function Admin() {
               {rows.map((r) => (
                 <tr key={r.loc.id}>
                   <td><b>{r.loc.name}</b><div className="muted small">{r.tables} tables{r.org.name !== r.loc.name ? ` · ${r.org.name}` : ""}</div></td>
-                  <td><span className="pill">{r.org.plan}</span> <span className="muted small">{r.org.status}</span></td>
+                  <td><span className="pill">{r.org.plan}</span> <span className="muted small">{r.org.status}</span>{r.org.free_until && new Date(r.org.free_until) > new Date() && <> <span className="pill ok-pill" title={`Free until ${new Date(r.org.free_until).toLocaleDateString("en-US", { timeZone: "America/Chicago" })}`}>Free</span></>}</td>
                   <td>{r.taps}</td>
                   <td className="small">{ago(r.lastTap)}</td>
                   <td>{r.open ? <span className={r.stuck ? "pill warn-pill" : "pill"}>{r.open}</span> : "0"}</td>

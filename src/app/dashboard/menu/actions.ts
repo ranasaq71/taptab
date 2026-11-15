@@ -1,4 +1,5 @@
 "use server";
+import { ModGroupsSchema } from "@/lib/modifiers";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requireLocation } from "@/lib/auth/session";
@@ -76,6 +77,7 @@ const Item = z.object({
   price: z.string().trim().regex(/^(\d{1,4}(\.\d{1,2})?)?$/, "Price looks wrong. Use a number like 12.50").optional(),
   tags: z.array(z.enum(TAGS)).default([]),
   heat: z.number().int().min(0).max(3).default(0),
+  modifiers: ModGroupsSchema.default([]),
   available: z.boolean().default(true),
 });
 
@@ -90,7 +92,7 @@ export async function saveItem(input: z.input<typeof Item>): Promise<Result> {
     description: v.descEn ? loc(v.descEn, v.descEs) : {},
     price_cents: v.price ? Math.round(parseFloat(v.price) * 100) : null,
     // Spice level drives the "Spicy" label, so the filter and flames always agree.
-    tags: [...v.tags.filter((t) => t !== "hot"), ...(v.heat > 0 ? ["hot" as const] : [])], heat: v.heat, available: v.available,
+    tags: [...v.tags.filter((t) => t !== "hot"), ...(v.heat > 0 ? ["hot" as const] : [])], heat: v.heat, available: v.available, modifiers: v.modifiers,
   };
   if (v.id) {
     if (!(await ownItem(ctx, v.id))) return { error: "Dish not found." };
