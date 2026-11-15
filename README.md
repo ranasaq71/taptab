@@ -44,3 +44,9 @@ Push to GitHub, import the repo in Vercel, add the same 4 environment variables,
 ## Next up
 
 Day 2: login screens and roles · QR code backup per tag · first test on a real Supabase project.
+
+## Deploying
+
+Pushing to `main` on GitHub deploys to production on Vercel automatically
+(https://taptab.brandrise.us). Database changes live in `supabase/migrations`
+and are applied separately in the Supabase SQL editor.
