@@ -4,7 +4,7 @@ import TapTabLogo from "./TapTabLogo";
 
 const LINKS = [
   { href: "#how", label: "How it works" },
-  { href: "#dashboard", label: "Dashboard" },
+  { href: "#features", label: "Features" },
   { href: "#pricing", label: "Pricing" },
 ];
 

@@ -45,7 +45,7 @@ export default function Home() {
 
       <Chapters />
 
-      <section id="dashboard" className="lp-dash">
+      <section id="features" className="lp-dash">
         <div className="lp-dash-copy">
           <p className="lp-label dark"><i />Your side of the tap</p>
           <h2 className="lp-h2">Run it all from one dashboard.</h2>
