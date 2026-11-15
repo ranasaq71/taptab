@@ -88,7 +88,7 @@ export default function HubForm({ v, previewUrl }: { v: HubValues; previewUrl: s
           <div className="grid-2">
             <label className="field"><span>Wi‑Fi network</span><input name="wifi_name" defaultValue={v.wifi_name} autoComplete="off" /></label>
             <label className="field"><span>Wi‑Fi password</span><input name="wifi_password" defaultValue={v.wifi_password} autoComplete="off" /></label>
-            <label className="field"><span>Google review link</span><input name="google_review_url" type="url" defaultValue={v.google_review_url} placeholder="https://g.page/r/…/review" /></label>
+            <label className="field"><span>Google review link</span><input name="google_review_url" type="url" defaultValue={v.google_review_url} placeholder="Paste your Google Maps or “Ask for reviews” link" /></label>
             <label className="field"><span>Instagram</span><input name="instagram_url" type="url" defaultValue={v.instagram_url} placeholder="https://instagram.com/yourrestaurant" /></label>
             <label className="field"><span>TikTok</span><input name="tiktok_url" type="url" defaultValue={v.tiktok_url} placeholder="https://www.tiktok.com/@yourrestaurant" /></label>
           </div>

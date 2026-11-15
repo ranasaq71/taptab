@@ -5,14 +5,14 @@ import { ruleText, type ModGroup } from "@/lib/modifiers";
 
 const T = {
   en: { table: "Table", special: "Today’s Special", close: "Close", all: "All Dishes", menuTitle: "Menu", network: "Network", password: "Password", copy: "Copy password", copied: "Password copied",
-        how: "How was everything today?", google: "Post your review on Google", notePrompt: "Anything the manager should know? Only they will see this.",
+        how: "How was everything today?", google: "Review us on Google", googleAsk: "Enjoyed your food? A Google review helps us a lot.", orPrivate: "or tell the manager privately", privateHow: "How was everything today?", notePrompt: "Anything the manager should know? Only they will see this.",
         notePh: "Type a note", sendNote: "Send to the manager", noteSent: "Sent to the manager. Thank you.",
         serverIntro: "Your server gets an alert right away.", help: "I need help", check: "Bring the check", refill: "Refill our drinks", notified: "Your server has been notified",
         loyaltyIntro: (g: number, r: string) => `Collect ${g} stamps: ${r}.`, phone: "Mobile number", consent: "Save my rewards card to this number. No spam.",
         stamp: "Collect today’s stamp", ready: "Reward ready! Show this screen to your server:", stamped: "Today’s stamp collected", already: "You already collected today’s stamp. See you next visit!", needPhone: "Enter your 10-digit mobile number.", needConsent: "Tick the box above to save your card.", welcome: "Welcome back! Card for", notYou: "Not you?", reward: "Reward unlocked:",
         pdf: "View full menu (PDF)", error: "Something went wrong. Please ask your server.", powered: "Powered by" },
   es: { table: "Mesa", special: "Especial de hoy", close: "Cerrar", all: "Todos", menuTitle: "Menú", network: "Red", password: "Contraseña", copy: "Copiar contraseña", copied: "Contraseña copiada",
-        how: "¿Cómo estuvo todo hoy?", google: "Publicar en Google", notePrompt: "¿Algo que el gerente deba saber? Solo lo verá el gerente.",
+        how: "¿Cómo estuvo todo hoy?", google: "Reseña en Google", googleAsk: "¿Te gustó la comida? Una reseña en Google nos ayuda mucho.", orPrivate: "o dile al gerente en privado", privateHow: "¿Cómo estuvo todo hoy?", notePrompt: "¿Algo que el gerente deba saber? Solo lo verá el gerente.",
         notePh: "Escribe aquí", sendNote: "Enviar al gerente", noteSent: "Enviado. Gracias.",
         serverIntro: "Tu mesero recibirá una alerta.", help: "Necesito ayuda", check: "Traer la cuenta", refill: "Rellenar bebidas", notified: "Tu mesero ya va en camino",
         loyaltyIntro: (g: number, r: string) => `Junta ${g} sellos: ${r}.`, phone: "Número de celular", consent: "Guardar mi tarjeta con este número. Sin spam.",
@@ -314,15 +314,23 @@ function ReviewSheet({ data, t, send, track, done, onError }: { data: HubData; t
   const [note, setNote] = useState("");
   return (
     <>
-      <p className="muted center">{t.how}</p>
-      <div className="stars">{[1, 2, 3, 4, 5].map((n) => <button key={n} className={n <= stars ? "on" : ""} onClick={() => setStars(n)} aria-label={`${n}`}>★</button>)}</div>
-      {stars > 0 && (
+      {/* Every guest is offered the Google link, whatever they'd rate. Filtering by rating ("review gating") breaks Google's rules. */}
+      {data.settings.googleReviewUrl && (
         <>
-          {/* Every guest is offered the Google link. Filtering by rating ("review gating") breaks Google's rules. */}
-          {data.settings.googleReviewUrl && <a className="big-btn" href={data.settings.googleReviewUrl} target="_blank" rel="noopener" onClick={() => track("google")}>{t.google}</a>}
+          <p className="muted center">{t.googleAsk}</p>
+          <a className="big-btn google-btn" href={data.settings.googleReviewUrl} target="_blank" rel="noopener" onClick={() => track("google")}>
+            <span className="g-stars" aria-hidden>★★★★★</span>{t.google}
+          </a>
+          <p className="or-line"><span>{t.orPrivate}</span></p>
+        </>
+      )}
+      <p className="muted center">{data.settings.googleReviewUrl ? t.privateHow : t.how}</p>
+      <div className="stars">{[1, 2, 3, 4, 5].map((n) => <button key={n} className={n <= stars ? "on" : ""} onClick={() => setStars(n)} aria-label={`${n}`}>★</button>)}</div>
+      {(stars > 0 || !data.settings.googleReviewUrl) && (
+        <>
           <p className="muted">{t.notePrompt}</p>
           <textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder={t.notePh} maxLength={2000} />
-          <button className="big-btn ghost" disabled={!note.trim()} onClick={() => send({ action: "note", stars, body: note }).then(() => done(t.noteSent)).catch((e) => onError(e.message))}>{t.sendNote}</button>
+          <button className="big-btn ghost" disabled={!note.trim()} onClick={() => send({ action: "note", stars: stars || undefined, body: note }).then(() => done(t.noteSent)).catch((e) => onError(e.message))}>{t.sendNote}</button>
         </>
       )}
     </>

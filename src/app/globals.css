@@ -491,3 +491,8 @@ tr.dim { opacity: .55; }
 .mod-opt-row { padding-left: 14px; }
 .mod-sum { display: block; color: var(--sub, #6F5960); }
 .share-box { white-space: pre-wrap; font: 13px/1.5 ui-monospace, Menlo, monospace; background: #F6F1EF; border-radius: 8px; padding: 12px; margin: 8px 0; }
+/* Review sheet: Google first, private note second */
+.google-btn { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.g-stars { color: #FBBC04; letter-spacing: 3px; font-size: 15px; line-height: 1; }
+.or-line { display: flex; align-items: center; gap: 10px; color: var(--sub); font-size: 13px; margin: 18px 0 4px; }
+.or-line::before, .or-line::after { content: ""; flex: 1; height: 1px; background: var(--line); }

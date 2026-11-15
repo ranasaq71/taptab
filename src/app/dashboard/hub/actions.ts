@@ -37,7 +37,7 @@ export async function saveHub(_: FormState, f: FormData): Promise<FormState> {
     .update({ name: v.name, tagline: nul(v.tagline), brand_color: v.brand_color }).eq("id", ctx.location.id);
   const { error: e2 } = await ctx.db.from("hub_settings").update({
     special: nul(v.special), special_es: nul(v.special_es), wifi_name: nul(v.wifi_name), wifi_password: nul(v.wifi_password),
-    google_review_url: nul(v.google_review_url), instagram_url: nul(v.instagram_url), tiktok_url: nul(v.tiktok_url),
+    google_review_url: reviewLink(nul(v.google_review_url)), instagram_url: nul(v.instagram_url), tiktok_url: nul(v.tiktok_url),
     buttons, theme: v.theme, loyalty_goal: v.loyalty_goal, loyalty_reward: v.loyalty_reward, updated_at: new Date().toISOString(),
   }).eq("location_id", ctx.location.id);
   if (e1 || e2) return { error: "Couldn’t save. Please try again." };
@@ -81,4 +81,16 @@ async function removeOldLogo(oldUrl: string | null) {
   const marker = "/storage/v1/object/public/logos/";
   if (!oldUrl?.includes(marker)) return;
   await supabaseAdmin().storage.from("logos").remove([oldUrl.split(marker)[1]]).catch(() => {});
+}
+
+/**
+ * A Google Maps link to the business only opens its page. When it carries the place's map id
+ * (0x…:0x…), turn it into a link that opens Google's "write a review" box directly.
+ */
+function reviewLink(url: string | null): string | null {
+  if (!url || /#lrd=|writereview|g\.page\/r\/.+\/review/.test(url)) return url;
+  const id = url.match(/0x[0-9a-f]+:0x[0-9a-f]+/i)?.[0];
+  if (!id || !/google\.[a-z.]+\/maps|maps\.app\.goo\.gl|goo\.gl\/maps/.test(url)) return url;
+  const name = decodeURIComponent(url.match(/\/maps\/place\/([^/]+)/)?.[1] ?? "").replace(/\+/g, " ").split(",")[0] || "review";
+  return `https://www.google.com/search?q=${encodeURIComponent(name)}#lrd=${id},3,,,,`;
 }
