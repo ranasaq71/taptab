@@ -522,3 +522,4 @@ tr.dim { opacity: .55; }
 .rv-mentions { list-style: none; padding: 0; margin: 0; display: grid; gap: 6px; }
 .rv-mentions li { display: flex; justify-content: space-between; border-bottom: 1px solid var(--line); padding: 4px 0; }
 .rv-google .btn { margin-top: 6px; }
+.stats.stats5 { grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); }

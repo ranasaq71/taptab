@@ -51,7 +51,7 @@ export default async function ReviewsPage({ searchParams }: { searchParams: Prom
       <p className="muted">Answer every Google review in your restaurant’s voice. TapTab writes the reply; you decide what posts automatically.</p>
       {sp.g && <p className={`notice${sp.g === "error" ? " error" : ""}`}>{sp.g === "error" ? sp.msg ?? "Couldn’t connect to Google." : NOTICES[sp.g] ?? ""}</p>}
 
-      <div className="stats">
+      <div className="stats stats5">
         <div><b>{recent.length}</b><span>Reviews, last 90 days</span></div>
         <div><b>{avg}</b><span>Average stars</span></div>
         <div><b>{rate}</b><span>Answered</span></div>
