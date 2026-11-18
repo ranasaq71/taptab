@@ -16,7 +16,7 @@ const ago = (iso: string | null) => {
 export default async function Admin() {
   const { db } = await requireAdmin();
   const week = new Date(Date.now() - 7 * DAY).toISOString();
-  const [{ data: orgs }, { data: taps }, { data: reqs }, { data: tags }, { data: hubs }, { data: staff }, { data: items }, { data: cards }, { data: notes }, { data: hw }] = await Promise.all([
+  const [{ data: orgs }, { data: taps }, { data: reqs }, { data: tags }, { data: hubs }, { data: staff }, { data: items }, { data: cards }, { data: notes }, { data: hw }, { data: revs }] = await Promise.all([
     db.from("organizations").select("id, name, plan, status, created_at, free_until, locations(id, name, created_at)").order("created_at", { ascending: false }),
     db.from("events").select("location_id").eq("type", "tap").gte("created_at", week).limit(100000),
     db.from("service_requests").select("location_id, status, created_at, resolved_at").or(`status.eq.open,created_at.gte.${week}`).limit(50000),
@@ -27,6 +27,7 @@ export default async function Admin() {
     db.from("loyalty_cards").select("location_id, last_stamp_at"),
     db.from("guest_notes").select("location_id, stars, read_at").gte("created_at", week),
     db.from("hardware_orders").select("location_id, status, created_at").order("created_at", { ascending: false }),
+    db.from("reviews").select("location_id, status").in("status", ["needs_approval", "new", "error"]),
   ]);
 
   const by = <T,>(rows: T[] | null, key: (r: T) => string | null | undefined) => {
@@ -35,6 +36,7 @@ export default async function Admin() {
   const tapsBy = by(taps, (r) => r.location_id), reqBy = by(reqs, (r) => r.location_id), tagBy = by(tags, (r) => r.location_id);
   const staffBy = by(staff, (r) => r.location_id), cardBy = by(cards, (r) => r.location_id), noteBy = by(notes, (r) => r.location_id);
   const itemBy = by(items, (r: any) => { const c = Array.isArray(r.menu_categories) ? r.menu_categories[0] : r.menu_categories; const m = Array.isArray(c?.menus) ? c.menus[0] : c?.menus; return m?.location_id; });
+  const revBy = by(revs, (r) => r.location_id);
   const googleBy = new Map((hubs ?? []).map((h) => [h.location_id, h.google_review_url]));
   const hwBy = new Map<string, string>(); for (const o of hw ?? []) if (!hwBy.has(o.location_id)) hwBy.set(o.location_id, o.status);
 
@@ -53,6 +55,8 @@ export default async function Admin() {
     if (!(itemBy.get(l.id)?.length)) issues.push("Menu is empty");
     if (!googleBy.get(l.id)) issues.push("No Google review link");
     if (!(staffBy.get(l.id)?.length)) issues.push("No staff for alerts");
+    const unanswered = revBy.get(l.id)?.length ?? 0;
+    if (unanswered) issues.push(`${unanswered} Google review${unanswered > 1 ? "s" : ""} to answer`);
     return { org: o, loc: l, taps: tapsBy.get(l.id)?.length ?? 0, open: open.length, stuck, avg, lastTap, tables: lt.length, members: cardBy.get(l.id)?.length ?? 0,
       lowNotes: (noteBy.get(l.id) ?? []).filter((n) => (n.stars ?? 5) <= 3).length, issues, hardware: hwBy.get(l.id) ?? null };
   }));

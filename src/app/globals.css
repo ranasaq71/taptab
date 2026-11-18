@@ -496,3 +496,29 @@ tr.dim { opacity: .55; }
 .g-stars { color: #FBBC04; letter-spacing: 3px; font-size: 15px; line-height: 1; }
 .or-line { display: flex; align-items: center; gap: 10px; color: var(--sub); font-size: 13px; margin: 18px 0 4px; }
 .or-line::before, .or-line::after { content: ""; flex: 1; height: 1px; background: var(--line); }
+/* Reviews page */
+.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 0 20px; }
+.form-grid { display: grid; gap: 4px; }
+.form-grid .btn { margin-top: 14px; justify-self: start; }
+.notice.error { background: #FBEAE6; color: #B3311B; }
+.btn-sm.primary { background: #1F4D36; border-color: #1F4D36; color: #fff; }
+.card .btn { display: inline-block; text-decoration: none; }
+.rv-draft { display: grid; gap: 10px; }
+.rv-draft input, .rv-google select { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; background: var(--surface); color: inherit; min-width: 0; }
+.rv-draft .btn { justify-self: start; }
+.rv-out { display: grid; gap: 8px; padding: 12px; border-radius: 12px; background: var(--soft2, #F6F1EF); }
+.rv-out .btn-sm { justify-self: start; }
+.rv-pick { display: inline-flex; gap: 2px; }
+.rv-pick button { border: 0; background: none; font-size: 26px; line-height: 1; color: #D9CDD0; padding: 2px; cursor: pointer; }
+.rv-pick button.on { color: #E8A21A; }
+.rv-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+.rv-list li { border: 1px solid var(--line); border-radius: 14px; padding: 14px; display: grid; gap: 8px; }
+.rv-list li.low { border-left: 4px solid #E0573B; }
+.rv-list.done li { background: var(--soft2, #F6F1EF); border-color: transparent; }
+.rv-meta { display: flex; flex-wrap: wrap; gap: 10px; align-items: baseline; }
+.rv-stars { color: #E8A21A; letter-spacing: 1px; }
+.rv-text { margin: 0; white-space: pre-wrap; }
+.rv-reply { margin: 0; color: var(--sub, #6F5960); white-space: pre-wrap; }
+.rv-mentions { list-style: none; padding: 0; margin: 0; display: grid; gap: 6px; }
+.rv-mentions li { display: flex; justify-content: space-between; border-bottom: 1px solid var(--line); padding: 4px 0; }
+.rv-google .btn { margin-top: 6px; }

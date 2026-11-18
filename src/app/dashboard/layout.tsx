@@ -31,6 +31,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
           {editor && <Link href="/dashboard/tables">Tables</Link>}
           {editor && <Link href="/dashboard/staff">Staff</Link>}
           {editor && <Link href="/dashboard/notes">Notes{unread ? <span className="nav-badge">{unread}</span> : null}</Link>}
+          {editor && <Link href="/dashboard/reviews">Reviews</Link>}
           {editor && <Link href="/dashboard/rewards">Rewards</Link>}
           {d.role === "owner" && <Link href="/dashboard/team">Team</Link>}
           {s.isAdmin && <Link href="/admin">Admin</Link>}
